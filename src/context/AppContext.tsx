@@ -227,6 +227,48 @@ Address: ${orderData.address}
 
       const encodedMessage = encodeURIComponent(message);
       const whatsappUrl = `https://wa.me/${shopPhone}?text=${encodedMessage}`;
+
+      // Send the order details to the brand email via Web3Forms
+      // Web3Forms is a serverless form-to-email API that requires no backend.
+      const WEB3FORMS_ACCESS_KEY = "52088c98-2160-4097-b0be-e9ada15f3c7e";
+      
+      try {
+        await fetch("https://api.web3forms.com/submit", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify({
+            access_key: WEB3FORMS_ACCESS_KEY,
+            subject: `🛍️ New Plain Culture Order #${createdOrder.id} - ₦${orderData.totalAmount.toLocaleString()}`,
+            from_name: "Plain Culture Website",
+            to_email: contactSettings.email || "plainculture.ng@gmail.com",
+            // Customer information
+            customer_name: orderData.customerName,
+            customer_phone: orderData.phone,
+            customer_email: checkoutForm.email || "Not provided",
+            delivery_address: orderData.address,
+            // Order details
+            order_id: createdOrder.id,
+            order_items: itemsString,
+            order_total: `₦${orderData.totalAmount.toLocaleString()}`,
+            order_status: "Pending",
+            order_date: new Date(createdOrder.createdAt).toLocaleString(),
+            // Payment details
+            payment_bank: contactSettings.payment.bankName,
+            payment_account_number: contactSettings.payment.accountNumber,
+            payment_account_name: contactSettings.payment.accountName,
+            // Full message
+            message: message,
+            // Botcheck honeypot to prevent spam
+            botcheck: ""
+          })
+        });
+        console.log(`📧 Order #${createdOrder.id} email notification sent to ${contactSettings.email}`);
+      } catch (emailError) {
+        console.error("Web3Forms email notification failed (order still saved):", emailError);
+      }
       
       // Delay slightly for smooth transitions
       setTimeout(() => {
