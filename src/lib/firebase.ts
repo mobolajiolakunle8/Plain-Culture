@@ -120,7 +120,8 @@ export interface AdminUserRecord {
   name: string;
   email: string;
   password: string;
-  role: "Super Admin" | "Admin" | "Partner";
+  role: "Super Admin" | "Admin" | "Partner" | "Manager";
+  customRoleName?: string; // Custom display name for the role (e.g. "Senior Manager", "Co-Founder")
   createdAt: string;
   isActive: boolean;
   trackingCode: string;
@@ -889,7 +890,7 @@ export const dbService = {
     return () => window.removeEventListener("pc_admins_changed", handler);
   },
 
-  addAdmin: async (adminData: { name: string; email: string; password: string; role?: "Admin" | "Partner" }): Promise<AdminUserRecord> => {
+  addAdmin: async (adminData: { name: string; email: string; password: string; role?: "Admin" | "Partner"; customRoleName?: string }): Promise<AdminUserRecord> => {
     const admins = dbService.getAdmins();
     const email = adminData.email.trim().toLowerCase();
     const existing = admins.find((admin) => admin.email.toLowerCase() === email);
@@ -908,6 +909,7 @@ export const dbService = {
       email,
       password: adminData.password,
       role,
+      customRoleName: adminData.customRoleName || undefined,
       createdAt: new Date().toISOString(),
       isActive: true,
       trackingCode: `${codePrefix}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`

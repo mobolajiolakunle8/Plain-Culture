@@ -162,7 +162,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
     name: "",
     email: "",
     password: "",
-    role: "Admin" as "Admin" | "Partner"
+    role: "Admin" as "Admin" | "Partner",
+    customRoleName: ""
   });
 
   // Settings inputs - covers all editable fields
@@ -657,12 +658,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
         name: adminForm.name,
         email: adminForm.email,
         password: adminForm.password,
-        role: adminForm.role
+        role: adminForm.role,
+        customRoleName: adminForm.customRoleName || undefined
       });
       const accessLabel = adminForm.role === "Partner" ? "read-only Business Partner access" : "full admin access";
       if (user) dbService.logActivity(user.email, user.name, `Granted ${accessLabel} to ${created.email}.`);
       onAddToast(`${created.name} now has ${accessLabel}. Tracking code: ${created.trackingCode}`, "success");
-      setAdminForm({ name: "", email: "", password: "", role: "Admin" });
+      setAdminForm({ name: "", email: "", password: "", role: "Admin", customRoleName: "" });
     } catch (error: any) {
       onAddToast(error.message || "Failed to add team member.", "error");
     }
@@ -977,14 +979,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
           </div>
 
           {/* Navigation Controls */}
+          {/* Security: Store Managers cannot access Settings (Bank details/Team) or Activities. */}
           <div className="flex flex-wrap gap-2">
             {[
               { id: "dashboard", label: "Overview", icon: LayoutDashboard },
               { id: "products", label: "Products Drop", icon: ShoppingBag },
               { id: "orders", label: "Orders Stream", icon: ClipboardList, badge: pendingOrdersCount },
               { id: "customers", label: "Customers", icon: Users },
-              ...(user?.role === "Super Admin" ? [{ id: "activities", label: "Admin Activities", icon: ClipboardList }] : []),
-              { id: "settings", label: "Settings & Keys", icon: Settings }
+              ...(user?.role === "Super Admin" ? [
+                { id: "activities", label: "Admin Activities", icon: ClipboardList },
+                { id: "settings", label: "Settings & Keys", icon: Settings }
+              ] : [])
             ].map((tab) => {
               const Icon = tab.icon;
               return (
@@ -2323,7 +2328,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
                 TEAM & PARTNER ACCESS
               </h2>
               <p className="text-xs text-zinc-500 mb-5">
-                Add an <strong className="text-black dark:text-white">Admin</strong> (full operational access) or a <strong className="text-black dark:text-white">Business Partner</strong> (read-only executive dashboard with financial intelligence — cannot edit products, orders, or settings).
+                Add an <strong className="text-black dark:text-white">Other Admin</strong> (limited operational access: orders, products, customers — cannot change bank details or settings) or a <strong className="text-black dark:text-white">Business Partner</strong> (read-only executive dashboard).
               </p>
 
               {/* Role selector */}
@@ -2339,8 +2344,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
                         : "border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:border-zinc-400"
                     }`}
                   >
-                    <span className="block text-xs font-black uppercase tracking-wider text-black dark:text-white">Admin</span>
-                    <span className="block text-[10px] text-zinc-500 mt-0.5">Full operational access to manage the store.</span>
+                    <span className="block text-xs font-black uppercase tracking-wider text-black dark:text-white">Other Admin</span>
+                    <span className="block text-[10px] text-zinc-500 mt-0.5">Limited access: Orders, Products, Customers. No Settings/Team access.</span>
                   </button>
                   <button
                     type="button"
@@ -2357,6 +2362,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
                 </div>
               </div>
 
+              {/* Custom Role Name Input */}
+              <div className="mb-5">
+                <label className="block text-xs font-black uppercase tracking-wider text-zinc-500 mb-1.5">
+                  Custom Role Title <span className="text-zinc-400 font-normal">(Optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={adminForm.customRoleName}
+                  onChange={(e) => setAdminForm({ ...adminForm, customRoleName: e.target.value })}
+                  placeholder={adminForm.role === "Partner" ? "e.g. Co-Founder, Investor" : "e.g. Lead Manager, Head of Sales"}
+                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-sm focus:outline-none focus:border-[#E8FF6B]"
+                />
+                <p className="text-[10px] text-zinc-400 mt-1">Leave empty to use the default role name.</p>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
                 <div>
                   <label className="block text-xs font-black uppercase tracking-wider text-zinc-500 mb-1.5">Full Name</label>
@@ -2364,7 +2384,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
                     type="text"
                     value={adminForm.name}
                     onChange={(e) => setAdminForm({ ...adminForm, name: e.target.value })}
-                    placeholder={adminForm.role === "Partner" ? "e.g. Business Partner" : "e.g. Store Manager"}
+                    placeholder={adminForm.role === "Partner" ? "e.g. Business Partner" : "e.g. Other Admin"}
                     className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-sm focus:outline-none focus:border-[#E8FF6B]"
                   />
                 </div>
@@ -2395,7 +2415,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
                 onClick={handleAddAdmin}
                 className="w-full md:w-auto px-5 py-3 bg-black dark:bg-[#E8FF6B] text-white dark:text-black font-extrabold uppercase tracking-widest text-xs rounded-sm hover:opacity-90 transition-opacity cursor-pointer"
               >
-                {adminForm.role === "Partner" ? "Add Business Partner" : "Add Full Access Admin"}
+                {adminForm.role === "Partner" ? "Add Business Partner" : "Add Admin"}
               </button>
 
               <div className="mt-6 pt-5 border-t border-zinc-100 dark:border-zinc-900 space-y-3">
@@ -2403,7 +2423,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
                 {admins.map((admin) => {
                   const isProtected = admin.id === "plainculture-primary-admin" || admin.id === "plainculture-fallback-admin";
                   const isPartner = admin.role === "Partner";
-                  const roleLabel = admin.role === "Super Admin" ? "Super Admin" : isPartner ? "Partner • Read-Only" : "Full Access";
+                  const isManager = admin.role === "Admin" || admin.role === "Manager";
+                  const baseRoleLabel = admin.role === "Super Admin" ? "Super Admin" : isPartner ? "Partner • Read-Only" : "Other Admin";
+                  const roleLabel = admin.customRoleName || baseRoleLabel;
                   return (
                     <div key={admin.id} className="flex items-center justify-between gap-4 p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-sm">
                       <div>
@@ -2417,7 +2439,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
                         <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-sm ${
                           isPartner
                             ? "bg-purple-500/15 text-purple-600 dark:text-purple-400"
-                            : "bg-[#E8FF6B]/15 text-black dark:text-[#E8FF6B]"
+                            : isManager
+                              ? "bg-blue-500/15 text-blue-600 dark:text-blue-400"
+                              : "bg-[#E8FF6B]/15 text-black dark:text-[#E8FF6B]"
                         }`}>
                           {roleLabel}
                         </span>
