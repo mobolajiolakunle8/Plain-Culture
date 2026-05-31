@@ -335,23 +335,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     // 1. Handle real Firebase Auth listener
+    //    IMPORTANT: anonymous auth users (no email) MUST NOT overwrite the
+    //    manually-logged-in user state. Otherwise Partners get clobbered by
+    //    the Super Admin default.
     if (isFirebaseConfigured && firebaseAuth) {
       const unsubscribe = onAuthStateChanged(firebaseAuth, (firebaseUser) => {
         if (firebaseUser) {
-          const emailStr = firebaseUser.email || "plainculture.ng@gmail.com";
+          const emailStr = firebaseUser.email;
+          // Skip anonymous users — they have no real email.
+          // The login() function is responsible for setting the user profile.
+          if (!emailStr) return;
+
           setUser({
             email: emailStr,
             name: "Plain Culture Admin",
             role: emailStr.toLowerCase() === "plainculture.ng@gmail.com" ? "Super Admin" : "Admin"
           });
         } else {
-          const localUser = localStorage.getItem("pc_active_admin");
-          if (localUser) {
-            const parsed = JSON.parse(localUser);
-            setUser({ ...parsed, role: parsed.email?.toLowerCase() === "plainculture.ng@gmail.com" ? "Super Admin" : "Admin" });
-          } else {
-            setUser(null);
-          }
+          // Real sign-out event — clear state
+          localStorage.removeItem("pc_active_admin");
+          setUser(null);
         }
         setIsLoading(false);
       });

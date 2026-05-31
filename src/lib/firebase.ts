@@ -318,16 +318,6 @@ const DEFAULT_ADMINS: AdminUserRecord[] = [
     createdAt: new Date().toISOString(),
     isActive: true,
     trackingCode: "ADM-SUPER"
-  },
-  {
-    id: "plainculture-default-partner",
-    name: "Business Partner",
-    email: "partner@plainculture.ng",
-    password: "partner2026secure",
-    role: "Partner",
-    createdAt: new Date().toISOString(),
-    isActive: true,
-    trackingCode: "PTR-FOUNDER"
   }
 ];
 
