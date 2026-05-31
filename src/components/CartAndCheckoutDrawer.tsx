@@ -134,19 +134,9 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
   };
 
   const validateEmail = async (email: string): Promise<boolean> => {
-    if (!email) return true; // Email remains optional
+    if (!email) return true; // Email is optional
     
     const emailLower = email.toLowerCase().trim();
-    const domain = emailLower.split("@")[1];
-    
-    if (!domain) return false;
-    
-    // Always verify the email is registered with Google (ends with gmail.com or googlemail.com)
-    const isGoogleRegistered = domain === "gmail.com" || domain === "googlemail.com";
-    if (!isGoogleRegistered) {
-      return false;
-    }
-    
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(emailLower);
   };
@@ -163,7 +153,7 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
     setEmailValidating(false);
     
     if (!isValid) {
-      onAddToast("Only official Google-registered emails (@gmail.com) are accepted for order processing.", "error");
+      onAddToast("Please enter a valid email address.", "error");
     }
   };
 
@@ -196,7 +186,7 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
         setEmailValidating(false);
         
         if (!isValid) {
-          onAddToast("Only official Google-registered emails (@gmail.com) are accepted for order processing.", "error");
+          onAddToast("Please enter a valid email address.", "error");
           return;
         }
       }
@@ -234,6 +224,7 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
       // Reset form and close
       setFormData({ countryCode: "+234", phone: "", name: "", address: "", email: "" });
       setCheckoutStep("cart");
+      setEmailValid(null);
       onClose();
     }
   };
@@ -489,7 +480,7 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
                       value={formData.email}
                       onChange={handleInputChange}
                       onBlur={handleEmailBlur}
-                      placeholder="e.g. segunalabi@gmail.com"
+                      placeholder="e.g. yourname@email.com"
                       disabled={emailValidating}
                       className={`w-full bg-zinc-50 dark:bg-zinc-900 border p-3 text-sm focus:outline-none transition-all text-black dark:text-white ${
                         emailValid === null 
@@ -517,12 +508,12 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
                   </div>
                   <p className="text-[10px] text-zinc-400 mt-1">
                     {emailValid === false && (
-                      <span className="text-red-500 font-bold">⚠️ Google Account Verification: Only registered Gmail addresses (@gmail.com) are accepted.</span>
+                      <span className="text-red-500 font-bold">Please enter a valid email address.</span>
                     )}
                     {emailValid === true && (
-                      <span className="text-emerald-500 font-bold">✓ Google Registered Gmail Address Verified</span>
+                      <span className="text-emerald-500 font-bold">Valid email address</span>
                     )}
-                    {!emailValid && !emailValidating && "We'll send order confirmation and tracking updates here."}
+                    {!emailValid && !emailValidating && "We&apos;ll send order confirmation and tracking updates here."}
                   </p>
                 </div>
               </form>

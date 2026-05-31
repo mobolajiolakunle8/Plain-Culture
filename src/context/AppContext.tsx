@@ -233,6 +233,100 @@ Address: ${orderData.address}
       // Web3Forms is a serverless form-to-email API that requires no backend.
       const WEB3FORMS_ACCESS_KEY = "52088c98-2160-4097-b0be-e9ada15f3c7e";
       
+      // Build product images HTML section for email
+      const baseUrl = window.location.origin;
+      const productImagesHtml = orderData.items.map((item) => {
+        const imageUrl = item.image.startsWith('http') ? item.image : `${baseUrl}${item.image}`;
+        return `
+          <tr>
+            <td style="padding: 12px; border-bottom: 1px solid #e5e5e5;">
+              <img src="${imageUrl}" alt="${item.name}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px;" />
+            </td>
+            <td style="padding: 12px; border-bottom: 1px solid #e5e5e5; vertical-align: top;">
+              <strong style="font-size: 14px; color: #1a1a1a;">${item.name}</strong><br/>
+              <span style="font-size: 12px; color: #666;">Size: ${item.size} | Qty: ${item.qty}</span><br/>
+              <span style="font-size: 14px; font-weight: bold; color: #1a1a1a;">₦${(item.price * item.qty).toLocaleString()}</span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      // Full HTML email template with product images
+      const htmlEmailContent = `
+        <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+          <div style="background-color: #000; padding: 20px; text-align: center;">
+            <h1 style="color: #E8FF6B; margin: 0; font-size: 24px; letter-spacing: 2px;">PLAIN CULTURE</h1>
+            <p style="color: #fff; margin: 10px 0 0 0; font-size: 12px; letter-spacing: 1px;">NEW ORDER RECEIVED</p>
+          </div>
+          
+          <div style="background-color: #fff; padding: 24px; border: 1px solid #e5e5e5;">
+            <h2 style="margin: 0 0 16px 0; font-size: 18px; color: #1a1a1a;">Order #${createdOrder.id}</h2>
+            <p style="margin: 0 0 16px 0; font-size: 14px; color: #666;">
+              ${new Date(createdOrder.createdAt).toLocaleString('en-NG', { dateStyle: 'full', timeStyle: 'short' })}
+            </p>
+            
+            <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 16px 0;" />
+            
+            <h3 style="margin: 0 0 12px 0; font-size: 14px; color: #1a1a1a; text-transform: uppercase; letter-spacing: 1px;">Order Items</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              ${productImagesHtml}
+            </table>
+            
+            <div style="background-color: #f5f5f5; padding: 16px; margin-top: 16px; border-radius: 4px;">
+              <table style="width: 100%;">
+                <tr>
+                  <td style="font-size: 14px; color: #666;">Subtotal:</td>
+                  <td style="font-size: 14px; color: #1a1a1a; text-align: right;">₦${orderData.totalAmount.toLocaleString()}</td>
+                </tr>
+                <tr>
+                  <td style="font-size: 16px; font-weight: bold; color: #1a1a1a; padding-top: 8px;">Total:</td>
+                  <td style="font-size: 16px; font-weight: bold; color: #1a1a1a; text-align: right; padding-top: 8px;">₦${orderData.totalAmount.toLocaleString()}</td>
+                </tr>
+              </table>
+            </div>
+            
+            <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;" />
+            
+            <h3 style="margin: 0 0 12px 0; font-size: 14px; color: #1a1a1a; text-transform: uppercase; letter-spacing: 1px;">Customer Details</h3>
+            <table style="width: 100%; font-size: 14px;">
+              <tr>
+                <td style="padding: 4px 0; color: #666; width: 120px;">Name:</td>
+                <td style="padding: 4px 0; color: #1a1a1a;">${orderData.customerName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 4px 0; color: #666;">Phone:</td>
+                <td style="padding: 4px 0; color: #1a1a1a;">${orderData.phone}</td>
+              </tr>
+              <tr>
+                <td style="padding: 4px 0; color: #666;">Email:</td>
+                <td style="padding: 4px 0; color: #1a1a1a;">${checkoutForm.email || 'Not provided'}</td>
+              </tr>
+              <tr>
+                <td style="padding: 4px 0; color: #666; vertical-align: top;">Address:</td>
+                <td style="padding: 4px 0; color: #1a1a1a;">${orderData.address}</td>
+              </tr>
+            </table>
+            
+            <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;" />
+            
+            <h3 style="margin: 0 0 12px 0; font-size: 14px; color: #1a1a1a; text-transform: uppercase; letter-spacing: 1px;">Payment Details</h3>
+            <div style="background-color: #E8FF6B; padding: 16px; border-radius: 4px;">
+              <p style="margin: 0 0 8px 0; font-size: 14px; color: #1a1a1a;"><strong>Bank:</strong> ${contactSettings.payment.bankName}</p>
+              <p style="margin: 0 0 8px 0; font-size: 14px; color: #1a1a1a;"><strong>Account:</strong> ${contactSettings.payment.accountNumber}</p>
+              <p style="margin: 0; font-size: 14px; color: #1a1a1a;"><strong>Name:</strong> ${contactSettings.payment.accountName}</p>
+            </div>
+            
+            <p style="margin: 24px 0 0 0; font-size: 12px; color: #999; text-align: center;">
+              Status: <span style="color: #f59e0b; font-weight: bold;">PENDING</span> - Awaiting payment confirmation
+            </p>
+          </div>
+          
+          <p style="margin: 16px 0 0 0; font-size: 11px; color: #999; text-align: center;">
+            This is an automated order notification from Plain Culture website.
+          </p>
+        </div>
+      `;
+
       try {
         await fetch("https://api.web3forms.com/submit", {
           method: "POST",
@@ -242,31 +336,16 @@ Address: ${orderData.address}
           },
           body: JSON.stringify({
             access_key: WEB3FORMS_ACCESS_KEY,
-            subject: `🛍️ New Plain Culture Order #${createdOrder.id} - ₦${orderData.totalAmount.toLocaleString()}`,
+            subject: `New Plain Culture Order #${createdOrder.id} - ₦${orderData.totalAmount.toLocaleString()}`,
             from_name: "Plain Culture Website",
             to_email: contactSettings.email || "plainculture.ng@gmail.com",
-            // Customer information
-            customer_name: orderData.customerName,
-            customer_phone: orderData.phone,
-            customer_email: checkoutForm.email || "Not provided",
-            delivery_address: orderData.address,
-            // Order details
-            order_id: createdOrder.id,
-            order_items: itemsString,
-            order_total: `₦${orderData.totalAmount.toLocaleString()}`,
-            order_status: "Pending",
-            order_date: new Date(createdOrder.createdAt).toLocaleString(),
-            // Payment details
-            payment_bank: contactSettings.payment.bankName,
-            payment_account_number: contactSettings.payment.accountNumber,
-            payment_account_name: contactSettings.payment.accountName,
-            // Full message
-            message: message,
+            // Send HTML email with product images
+            message: htmlEmailContent,
             // Botcheck honeypot to prevent spam
             botcheck: ""
           })
         });
-        console.log(`📧 Order #${createdOrder.id} email notification sent to ${contactSettings.email}`);
+        console.log(`Order #${createdOrder.id} email notification sent to ${contactSettings.email}`);
       } catch (emailError) {
         console.error("Web3Forms email notification failed (order still saved):", emailError);
       }
