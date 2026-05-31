@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AppContext";
+import { PartnerDashboard } from "./PartnerDashboard";
 import { 
   dbService, 
   Product, 
@@ -160,7 +161,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
   const [adminForm, setAdminForm] = useState({
     name: "",
     email: "",
-    password: ""
+    password: "",
+    role: "Admin" as "Admin" | "Partner"
   });
 
   // Settings inputs - covers all editable fields
@@ -641,22 +643,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
 
   const handleAddAdmin = async () => {
     if (!adminForm.name.trim() || !adminForm.email.trim() || !adminForm.password.trim()) {
-      onAddToast("Admin name, email, and password are required.", "error");
+      onAddToast("Name, email, and password are required.", "error");
       return;
     }
 
     if (adminForm.password.length < 8) {
-      onAddToast("Admin password must be at least 8 characters.", "error");
+      onAddToast("Password must be at least 8 characters.", "error");
       return;
     }
 
     try {
-      const created = await dbService.addAdmin(adminForm);
-      if (user) dbService.logActivity(user.email, user.name, `Granted full admin access to ${created.email}.`);
-      onAddToast(`${created.name} now has full admin access.`, "success");
-      setAdminForm({ name: "", email: "", password: "" });
+      const created = await dbService.addAdmin({
+        name: adminForm.name,
+        email: adminForm.email,
+        password: adminForm.password,
+        role: adminForm.role
+      });
+      const accessLabel = adminForm.role === "Partner" ? "read-only Business Partner access" : "full admin access";
+      if (user) dbService.logActivity(user.email, user.name, `Granted ${accessLabel} to ${created.email}.`);
+      onAddToast(`${created.name} now has ${accessLabel}. Tracking code: ${created.trackingCode}`, "success");
+      setAdminForm({ name: "", email: "", password: "", role: "Admin" });
     } catch (error: any) {
-      onAddToast(error.message || "Failed to add admin.", "error");
+      onAddToast(error.message || "Failed to add team member.", "error");
     }
   };
 
@@ -910,6 +918,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
         </div>
       </div>
     );
+  }
+
+  // ==========================================
+  // VIEW: PARTNER REDIRECT
+  // Business Partners get a dedicated executive read-only dashboard, never the admin panel.
+  // ==========================================
+  if (user.role === "Partner") {
+    return <PartnerDashboard onNavigateToHome={onNavigateToHome} />;
   }
 
   // ==========================================
@@ -2300,32 +2316,65 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
               </div>
             </div>
 
-            {/* SECTION J: ADMIN TEAM ACCESS */}
+            {/* SECTION J: TEAM & PARTNER ACCESS */}
             <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 rounded-sm p-6">
               <h2 className="text-base font-black uppercase tracking-wider text-black dark:text-white mb-1 flex items-center gap-2">
                 <span className="w-2 h-2 bg-[#E8FF6B] rounded-full" />
-                ADMIN TEAM ACCESS
+                TEAM & PARTNER ACCESS
               </h2>
-              <p className="text-xs text-zinc-500 mb-5">Add another admin with full dashboard access. They can manage products, orders, customers, settings, and other admins.</p>
+              <p className="text-xs text-zinc-500 mb-5">
+                Add an <strong className="text-black dark:text-white">Admin</strong> (full operational access) or a <strong className="text-black dark:text-white">Business Partner</strong> (read-only executive dashboard with financial intelligence — cannot edit products, orders, or settings).
+              </p>
+
+              {/* Role selector */}
+              <div className="mb-5">
+                <label className="block text-xs font-black uppercase tracking-wider text-zinc-500 mb-2">Access Role</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setAdminForm({ ...adminForm, role: "Admin" })}
+                    className={`text-left p-3 rounded-sm border transition-all cursor-pointer ${
+                      adminForm.role === "Admin"
+                        ? "border-[#E8FF6B] bg-[#E8FF6B]/10"
+                        : "border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:border-zinc-400"
+                    }`}
+                  >
+                    <span className="block text-xs font-black uppercase tracking-wider text-black dark:text-white">Admin</span>
+                    <span className="block text-[10px] text-zinc-500 mt-0.5">Full operational access to manage the store.</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAdminForm({ ...adminForm, role: "Partner" })}
+                    className={`text-left p-3 rounded-sm border transition-all cursor-pointer ${
+                      adminForm.role === "Partner"
+                        ? "border-[#E8FF6B] bg-[#E8FF6B]/10"
+                        : "border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:border-zinc-400"
+                    }`}
+                  >
+                    <span className="block text-xs font-black uppercase tracking-wider text-black dark:text-white">Business Partner</span>
+                    <span className="block text-[10px] text-zinc-500 mt-0.5">Read-only executive dashboard. Cannot change anything.</span>
+                  </button>
+                </div>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-zinc-500 mb-1.5">Admin Name</label>
+                  <label className="block text-xs font-black uppercase tracking-wider text-zinc-500 mb-1.5">Full Name</label>
                   <input
                     type="text"
                     value={adminForm.name}
                     onChange={(e) => setAdminForm({ ...adminForm, name: e.target.value })}
-                    placeholder="e.g. Store Manager"
+                    placeholder={adminForm.role === "Partner" ? "e.g. Business Partner" : "e.g. Store Manager"}
                     className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-sm focus:outline-none focus:border-[#E8FF6B]"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-zinc-500 mb-1.5">Admin Email</label>
+                  <label className="block text-xs font-black uppercase tracking-wider text-zinc-500 mb-1.5">Email</label>
                   <input
                     type="email"
                     value={adminForm.email}
                     onChange={(e) => setAdminForm({ ...adminForm, email: e.target.value })}
-                    placeholder="manager@plainculture.ng"
+                    placeholder="name@plainculture.ng"
                     className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-sm focus:outline-none focus:border-[#E8FF6B]"
                   />
                 </div>
@@ -2346,13 +2395,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
                 onClick={handleAddAdmin}
                 className="w-full md:w-auto px-5 py-3 bg-black dark:bg-[#E8FF6B] text-white dark:text-black font-extrabold uppercase tracking-widest text-xs rounded-sm hover:opacity-90 transition-opacity cursor-pointer"
               >
-                Add Full Access Admin
+                {adminForm.role === "Partner" ? "Add Business Partner" : "Add Full Access Admin"}
               </button>
 
               <div className="mt-6 pt-5 border-t border-zinc-100 dark:border-zinc-900 space-y-3">
-                <h3 className="text-xs font-black uppercase tracking-wider text-zinc-500">Current Admins</h3>
+                <h3 className="text-xs font-black uppercase tracking-wider text-zinc-500">Current Team & Partners</h3>
                 {admins.map((admin) => {
                   const isProtected = admin.id === "plainculture-primary-admin" || admin.id === "plainculture-fallback-admin";
+                  const isPartner = admin.role === "Partner";
+                  const roleLabel = admin.role === "Super Admin" ? "Super Admin" : isPartner ? "Partner • Read-Only" : "Full Access";
                   return (
                     <div key={admin.id} className="flex items-center justify-between gap-4 p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-sm">
                       <div>
@@ -2363,8 +2414,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
                         <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider font-mono mr-2 border border-zinc-200 dark:border-zinc-800 px-2 py-1 rounded-sm">
                           {admin.trackingCode}
                         </span>
-                        <span className="text-[10px] font-black uppercase tracking-wider bg-[#E8FF6B]/15 text-black dark:text-[#E8FF6B] px-2 py-1 rounded-sm">
-                          Full Access
+                        <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-sm ${
+                          isPartner
+                            ? "bg-purple-500/15 text-purple-600 dark:text-purple-400"
+                            : "bg-[#E8FF6B]/15 text-black dark:text-[#E8FF6B]"
+                        }`}>
+                          {roleLabel}
                         </span>
                         {!isProtected && (
                           <>

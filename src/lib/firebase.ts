@@ -120,7 +120,7 @@ export interface AdminUserRecord {
   name: string;
   email: string;
   password: string;
-  role: "Super Admin" | "Admin";
+  role: "Super Admin" | "Admin" | "Partner";
   createdAt: string;
   isActive: boolean;
   trackingCode: string;
@@ -318,6 +318,16 @@ const DEFAULT_ADMINS: AdminUserRecord[] = [
     createdAt: new Date().toISOString(),
     isActive: true,
     trackingCode: "ADM-SUPER"
+  },
+  {
+    id: "plainculture-default-partner",
+    name: "Business Partner",
+    email: "partner@plainculture.ng",
+    password: "partner2026secure",
+    role: "Partner",
+    createdAt: new Date().toISOString(),
+    isActive: true,
+    trackingCode: "PTR-FOUNDER"
   }
 ];
 
@@ -814,6 +824,7 @@ export const dbService = {
   getAdminsAsync: async (): Promise<AdminUserRecord[]> => {
     if (isFirebaseConfigured && db) {
       try {
+        await ensureFirebaseAuthSession();
         const snapshot = await getDocs(collection(db, "admins"));
         const firebaseAdmins: AdminUserRecord[] = [];
         snapshot.forEach((docItem) => {
@@ -888,24 +899,28 @@ export const dbService = {
     return () => window.removeEventListener("pc_admins_changed", handler);
   },
 
-  addAdmin: async (adminData: { name: string; email: string; password: string }): Promise<AdminUserRecord> => {
+  addAdmin: async (adminData: { name: string; email: string; password: string; role?: "Admin" | "Partner" }): Promise<AdminUserRecord> => {
     const admins = dbService.getAdmins();
     const email = adminData.email.trim().toLowerCase();
     const existing = admins.find((admin) => admin.email.toLowerCase() === email);
 
     if (existing) {
-      throw new Error("An admin with this email already exists.");
+      throw new Error("A team member with this email already exists.");
     }
 
+    const role = adminData.role || "Admin";
+    // Partners get a "PTR-" tracking code, Admins get "ADM-"
+    const codePrefix = role === "Partner" ? "PTR" : "ADM";
+
     const newAdmin: AdminUserRecord = {
-      id: `admin-${Math.random().toString(36).slice(2, 10)}`,
+      id: `${role === "Partner" ? "partner" : "admin"}-${Math.random().toString(36).slice(2, 10)}`,
       name: adminData.name.trim(),
       email,
       password: adminData.password,
-      role: "Admin",
+      role,
       createdAt: new Date().toISOString(),
       isActive: true,
-      trackingCode: `ADM-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+      trackingCode: `${codePrefix}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
     };
 
     const updated = [...admins, newAdmin];
@@ -913,16 +928,19 @@ export const dbService = {
     window.dispatchEvent(new CustomEvent("pc_admins_changed", { detail: updated }));
 
     if (isFirebaseConfigured && db) {
-      setDoc(doc(db, "admins", newAdmin.id), {
-        id: newAdmin.id,
-        name: newAdmin.name,
-        email: newAdmin.email,
-        role: newAdmin.role,
-        createdAt: newAdmin.createdAt
-      }).catch((e) => console.error("Firebase addAdmin metadata error:", e));
+      // Write the full admin record (including password) so other browsers can authenticate this user.
+      // Firestore rules already restrict reads to authenticated sessions.
+      ensureFirebaseAuthSession()
+        .then(() => setDoc(doc(db, "admins", newAdmin.id), newAdmin))
+        .catch((e) => console.error("Firebase addAdmin error:", e));
     }
 
     return newAdmin;
+  },
+
+  // Convenience helper for adding a Business Partner with read-only financial access.
+  addPartner: async (partnerData: { name: string; email: string; password: string }): Promise<AdminUserRecord> => {
+    return dbService.addAdmin({ ...partnerData, role: "Partner" });
   },
 
   deleteAdmin: async (id: string): Promise<void> => {

@@ -5,6 +5,7 @@ import {
   Order, 
   OrderItem, 
   StoreSettings,
+  AdminUserRecord,
   auth as firebaseAuth, 
   isFirebaseConfigured 
 } from "../lib/firebase";
@@ -370,16 +371,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     const settings = dbService.getSettings();
-    const admins = dbService.getAdmins(); // Use local sync for instant response
+    const localAdmins = dbService.getAdmins(); // instant local lookup
     const savedPassword = localStorage.getItem("pc_admin_password") || "ibadanminimalist2026";
 
-    // 1. Try local/mock authentication FIRST for instant response
-    let matchedAdmin = admins.find((admin) => {
-      const sameEmail = admin.email.toLowerCase() === email.toLowerCase();
-      const primaryEmail = settings.email.toLowerCase() === email.toLowerCase();
-      const passwordMatches = admin.password === password || (primaryEmail && password === savedPassword);
-      return sameEmail && passwordMatches;
-    });
+    const findMatchingAdmin = (adminsList: AdminUserRecord[]) => {
+      return adminsList.find((admin) => {
+        const sameEmail = admin.email.toLowerCase() === email.toLowerCase();
+        const primaryEmail = settings.email.toLowerCase() === email.toLowerCase();
+        const passwordMatches = admin.password === password || (primaryEmail && password === savedPassword);
+        return sameEmail && passwordMatches;
+      });
+    };
+
+    // 1. Try local cache first for instant response
+    let matchedAdmin = findMatchingAdmin(localAdmins);
+
+    // 2. If not found locally, pull fresh admin list from Firestore (cross-browser support)
+    if (!matchedAdmin) {
+      try {
+        const remoteAdmins = await dbService.getAdminsAsync();
+        matchedAdmin = findMatchingAdmin(remoteAdmins);
+      } catch (e) {
+        console.warn("Could not fetch remote admins during login:", e);
+      }
+    }
 
     if (!matchedAdmin && settings.email.toLowerCase() === email.toLowerCase() && password === savedPassword) {
       matchedAdmin = { 
@@ -397,15 +412,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (matchedAdmin) {
       if (!matchedAdmin.isActive) {
         setIsLoading(false);
-        throw new Error("This admin account has been deactivated.");
+        throw new Error("This account has been deactivated.");
       }
 
-      const role = (matchedAdmin.email.toLowerCase() === "plainculture.ng@gmail.com" ? "Super Admin" : "Admin") as "Super Admin" | "Admin";
+      // Super Admin always wins for the primary email; otherwise respect the stored role (Admin or Partner).
+      const role = matchedAdmin.email.toLowerCase() === "plainculture.ng@gmail.com"
+        ? "Super Admin"
+        : (matchedAdmin.role || "Admin");
       
       const userProfile: UserProfile = { 
         email: matchedAdmin.email, 
-        name: matchedAdmin.name || "Plain Culture Admin",
-        role: role as "Super Admin" | "Admin"
+        name: matchedAdmin.name || "Plain Culture Team",
+        role: role
       };
       localStorage.setItem("pc_active_admin", JSON.stringify(userProfile));
       setUser(userProfile as UserProfile);
