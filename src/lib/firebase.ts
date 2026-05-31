@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, signInAnonymously } from "firebase/auth";
+import { getAuth, signInAnonymously, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { 
   getFirestore, 
   collection, 
@@ -35,6 +35,7 @@ export let app: any = null;
 export let auth: any = null;
 export let db: any = null;
 export let analytics: any = null;
+export let googleProvider: GoogleAuthProvider | null = null;
 
 export const ensureFirebaseAuthSession = async () => {
   if (!isFirebaseConfigured || !auth) return null;
@@ -55,6 +56,10 @@ if (isFirebaseConfigured) {
     app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
+    googleProvider = new GoogleAuthProvider();
+    googleProvider.setCustomParameters({
+      prompt: 'select_account'
+    });
 
     // Analytics intentionally disabled to avoid ad-blocker/gtag connection errors during order sync testing.
     analytics = null;
@@ -68,6 +73,42 @@ if (isFirebaseConfigured) {
 }
 
 export { isFirebaseConfigured };
+
+// Google Sign-In for email verification during checkout
+export const signInWithGoogle = async (): Promise<{ email: string; name: string } | null> => {
+  if (!isFirebaseConfigured || !auth || !googleProvider) {
+    console.error("Firebase or Google provider not configured");
+    return null;
+  }
+
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+    
+    if (!user.email) {
+      throw new Error("No email returned from Google account");
+    }
+
+    // Validate that the email is a Gmail address
+    const emailDomain = user.email.split("@")[1]?.toLowerCase();
+    if (emailDomain !== "gmail.com" && emailDomain !== "googlemail.com") {
+      throw new Error("INVALID_EMAIL_DOMAIN");
+    }
+
+    return {
+      email: user.email,
+      name: user.displayName || ""
+    };
+  } catch (error: any) {
+    // Re-throw with specific error code for domain validation
+    if (error.message === "INVALID_EMAIL_DOMAIN") {
+      throw error;
+    }
+    // User closed popup or other error
+    console.error("Google Sign-In error:", error);
+    throw error;
+  }
+};
 
 // ==========================================
 // TYPES & SCHEMAS
