@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, signInAnonymously, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { getAuth, signInAnonymously } from "firebase/auth";
 import { 
   getFirestore, 
   collection, 
