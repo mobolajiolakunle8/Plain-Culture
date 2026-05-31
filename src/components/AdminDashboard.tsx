@@ -925,7 +925,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
   // Business Partners get a dedicated executive read-only dashboard, never the admin panel.
   // ==========================================
   if (user.role === "Partner") {
-    return <PartnerDashboard onNavigateToHome={onNavigateToHome} />;
+    return <PartnerDashboard onNavigateToHome={onNavigateToHome} onAddToast={onAddToast} />;
   }
 
   // ==========================================

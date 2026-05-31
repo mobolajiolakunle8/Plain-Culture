@@ -950,6 +950,37 @@ export const dbService = {
     }
   },
 
+  // Update an admin/partner password (used by the account owner themselves).
+  // Verifies current password, then updates both local cache and Firestore.
+  updateSelfPassword: async (email: string, currentPassword: string, newPassword: string): Promise<boolean> => {
+    const admins = dbService.getAdmins();
+    const targetIndex = admins.findIndex((a) => a.email.toLowerCase() === email.toLowerCase());
+
+    if (targetIndex === -1) {
+      throw new Error("Account not found.");
+    }
+
+    if (admins[targetIndex].password !== currentPassword) {
+      throw new Error("Current password is incorrect.");
+    }
+
+    admins[targetIndex].password = newPassword;
+    localStorage.setItem("pc_admins", JSON.stringify(admins));
+    window.dispatchEvent(new CustomEvent("pc_admins_changed", { detail: admins }));
+
+    if (isFirebaseConfigured && db) {
+      try {
+        await ensureFirebaseAuthSession();
+        await updateDoc(doc(db, "admins", admins[targetIndex].id), { password: newPassword });
+      } catch (e) {
+        console.error("Firebase updateSelfPassword error:", e);
+        throw new Error("Failed to sync new password to cloud.");
+      }
+    }
+
+    return true;
+  },
+
   toggleAdminStatus: async (id: string): Promise<void> => {
     const admins = dbService.getAdmins();
     const adminIndex = admins.findIndex((a) => a.id === id);
