@@ -2,6 +2,7 @@ import React from "react";
 import { useTheme, useCart, useSettings } from "../context/AppContext";
 import { ShoppingBag, Sun, Moon } from "lucide-react";
 import { Marquee } from "./Marquee";
+import { LocationDetector } from "./LocationDetector";
 
 interface NavbarProps {
   onOpenCart: () => void;
@@ -63,6 +64,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Action Controls */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Location Detector */}
+          <LocationDetector />
+
           {/* Theme Toggle Button (Dark/Light Mode) */}
           <button
             onClick={toggleTheme}
