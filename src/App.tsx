@@ -11,6 +11,7 @@ import { Footer } from "./components/Footer";
 import { ReturnPolicyPage } from "./components/ReturnPolicyPage";
 import { OrderTrackingPage } from "./components/OrderTrackingPage";
 import { ToastContainer, ToastMessage } from "./components/Toast";
+import { InstallPrompt } from "./components/InstallPrompt";
 import { Sparkles, Cpu, RefreshCw, Layers, Compass } from "lucide-react";
 
 // Inner core of the application to gain access to Cart state and contexts safely
@@ -295,6 +296,9 @@ const StorefrontContent: React.FC = () => {
 
       {/* GLOBAL NOTIFICATION TOAST POPPER */}
       <ToastContainer toasts={toasts} removeToast={removeToast} />
+
+      {/* PWA Install Prompt */}
+      <InstallPrompt />
 
     </div>
   );
