@@ -1,24 +1,23 @@
-const CACHE_NAME = "plain-culture-v1";
+const CACHE_NAME = "plain-culture-v2";
 
-// Assets to pre-cache for offline experience
+// ONLY pre-cache lightweight static assets.
+// Do NOT pre-cache the massive index.html (1.2MB single-file build) — it crashes installation.
 const PRECACHE_ASSETS = [
-  "/",
   "/icon-192.png",
   "/icon-512.png",
-  "/images/hero.jpg",
-  "/images/tee_onyx.jpg",
-  "/images/tee_sand.jpg",
-  "/images/tee_charcoal.jpg",
-  "/images/tee_olive.jpg"
+  "/manifest.json"
 ];
 
-// Install: Pre-cache essential assets
+// Install: Pre-cache only small static assets
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log("[SW] Pre-caching essential assets");
-      return cache.addAll(PRECACHE_ASSETS);
-    })
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => {
+        console.log("[SW] Pre-caching essential static assets");
+        return cache.addAll(PRECACHE_ASSETS);
+      })
+      .catch((err) => console.warn("[SW] Pre-cache failed:", err))
   );
   self.skipWaiting();
 });
@@ -37,12 +36,11 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Fetch: Network-first strategy with cache fallback
-// This ensures fresh data from Firebase while still working offline
+// Fetch: Network-first with cache fallback for offline support
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
-  // Skip non-GET requests and Firebase/external API calls
+  // Skip non-GET and external API calls
   if (
     event.request.method !== "GET" ||
     url.hostname.includes("firestore") ||
@@ -57,7 +55,7 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Cache successful responses for offline use
+        // Cache successful responses at runtime
         if (response.status === 200) {
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -67,12 +65,10 @@ self.addEventListener("fetch", (event) => {
         return response;
       })
       .catch(() => {
-        // Network failed — serve from cache
+        // Offline: try to serve from cache
         return caches.match(event.request).then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-          // If the request is for a page navigation, serve the cached index
+          if (cachedResponse) return cachedResponse;
+          // For navigations, fallback to cached homepage if available
           if (event.request.mode === "navigate") {
             return caches.match("/");
           }

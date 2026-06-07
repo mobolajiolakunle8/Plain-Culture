@@ -1,91 +1,112 @@
 import React, { useState, useEffect } from "react";
-import { Download, X, Smartphone } from "lucide-react";
+import { Download, X, Share2, Smartphone } from "lucide-react";
 
 export const InstallPrompt: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showPrompt, setShowPrompt] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
-    // Check if already dismissed this session
-    if (sessionStorage.getItem("pc_install_dismissed")) {
-      setDismissed(true);
-      return;
+    // 1. Detect if already installed (running in standalone mode)
+    const isStandaloneMode =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (navigator as any).standalone;
+    setIsStandalone(isStandaloneMode);
+    if (isStandaloneMode) return;
+
+    // 2. Check if user already dismissed this session
+    if (sessionStorage.getItem("pc_install_dismissed")) return;
+
+    // 3. Detect iOS (iPhone/iPad/iPod)
+    const isIosDevice =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    setIsIOS(isIosDevice);
+
+    if (!isIosDevice) {
+      // Android/Desktop: Listen for the install prompt event
+      const handler = (e: Event) => {
+        e.preventDefault();
+        setDeferredPrompt(e);
+        setTimeout(() => setShowPrompt(true), 3000);
+      };
+      window.addEventListener("beforeinstallprompt", handler);
+      return () => window.removeEventListener("beforeinstallprompt", handler);
+    } else {
+      // iOS: Show manual instructions after 3 seconds (Safari blocks auto-install)
+      setTimeout(() => setShowPrompt(true), 3000);
     }
-
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      // Show our custom prompt after a short delay (don't interrupt browsing immediately)
-      setTimeout(() => setShowPrompt(true), 5000);
-    };
-
-    window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
-    
     deferredPrompt.prompt();
-    const result = await deferredPrompt.userChoice;
-    
-    if (result.outcome === "accepted") {
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") {
       console.log("PWA installed!");
     }
-    
     setDeferredPrompt(null);
     setShowPrompt(false);
   };
 
   const handleDismiss = () => {
     setShowPrompt(false);
-    setDismissed(true);
     sessionStorage.setItem("pc_install_dismissed", "true");
   };
 
-  if (!showPrompt || dismissed || !deferredPrompt) return null;
+  // Don't show if already installed
+  if (isStandalone) return null;
+  // Don't show if Android has no install capability yet
+  if (!isIOS && !deferredPrompt) return null;
+  if (!showPrompt) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-50 animate-slide-in sm:left-auto sm:right-4 sm:max-w-sm">
-      <div className="bg-black border border-zinc-800 rounded-sm p-4 shadow-2xl">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 bg-[#E8FF6B]/15 rounded-sm flex items-center justify-center shrink-0">
-            <Smartphone className="w-5 h-5 text-[#E8FF6B]" />
-          </div>
-          
-          <div className="flex-1">
-            <h3 className="text-sm font-black text-white uppercase tracking-wider">
-              Install Plain Culture
-            </h3>
-            <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
-              Add to your home screen for instant access. No app store needed.
-            </p>
-            
-            <div className="flex gap-2 mt-3">
-              <button
-                onClick={handleInstall}
-                className="flex items-center gap-1.5 px-3 py-2 bg-[#E8FF6B] text-black font-extrabold text-[10px] uppercase tracking-widest rounded-sm cursor-pointer hover:opacity-90 transition-opacity"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Install</span>
-              </button>
-              <button
-                onClick={handleDismiss}
-                className="px-3 py-2 bg-zinc-900 text-zinc-400 font-bold text-[10px] uppercase tracking-widest rounded-sm cursor-pointer hover:text-white transition-colors"
-              >
-                Not Now
-              </button>
+    <div className="fixed bottom-4 left-4 right-4 z-[100] animate-slide-in sm:left-auto sm:right-4 sm:max-w-sm">
+      <div className="bg-zinc-900 border border-zinc-800 text-white rounded-lg p-4 shadow-2xl flex flex-col gap-3">
+        <div className="flex justify-between items-start">
+          <div className="flex items-center gap-3">
+            <div className="bg-[#E8FF6B] text-black p-2 rounded-md shrink-0">
+              <Smartphone size={20} />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm uppercase tracking-wider">
+                Install Plain Culture
+              </h3>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                {isIOS
+                  ? "Add to Home Screen for app-like experience"
+                  : "Install app for quick access"}
+              </p>
             </div>
           </div>
-          
           <button
             onClick={handleDismiss}
-            className="text-zinc-600 hover:text-zinc-400 cursor-pointer"
+            className="text-zinc-500 hover:text-white cursor-pointer"
           >
-            <X className="w-4 h-4" />
+            <X size={16} />
           </button>
         </div>
+
+        {isIOS ? (
+          <div className="bg-zinc-800/50 p-3 rounded-md text-xs text-zinc-300 flex items-start gap-2">
+            <Share2
+              size={14}
+              className="text-[#E8FF6B] mt-0.5 shrink-0"
+            />
+            <span>
+              Tap the <strong>Share</strong> button{" "}
+              <span className="inline-block mx-1">⎋</span> in Safari, scroll
+              down, and tap <strong>"Add to Home Screen"</strong>.
+            </span>
+          </div>
+        ) : (
+          <button
+            onClick={handleInstall}
+            className="w-full bg-[#E8FF6B] text-black font-bold py-2 rounded-md text-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2 cursor-pointer uppercase tracking-widest"
+          >
+            <Download size={16} /> Install App
+          </button>
+        )}
       </div>
     </div>
   );
