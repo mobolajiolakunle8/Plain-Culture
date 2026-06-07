@@ -548,6 +548,25 @@ export const dbService = {
     };
   },
 
+  getOrders: async (): Promise<Order[]> => {
+    if (isFirebaseConfigured && db) {
+      try {
+        await ensureFirebaseAuthSession();
+        const snapshot = await getDocs(collection(db, "orders"));
+        const ordersList: Order[] = [];
+        snapshot.forEach((doc) => {
+          ordersList.push({ id: doc.id, ...doc.data() } as Order);
+        });
+        return ordersList;
+      } catch (e) {
+        console.error("Error loading orders from Firebase:", e);
+        return mockDb.getData("orders");
+      }
+    } else {
+      return mockDb.getData("orders");
+    }
+  },
+
   addOrder: async (orderData: Omit<Order, "id" | "createdAt" | "status">): Promise<Order> => {
     // Generate order ID like PC-7489
     const randomNum = Math.floor(1000 + Math.random() * 9000);

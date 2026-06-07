@@ -5,11 +5,12 @@ import { MessageSquare, Mail, MapPin, Sparkles, LogIn } from "lucide-react";
 interface FooterProps {
   onNavigateToAdmin: () => void;
   onNavigateToReturnPolicy: () => void;
+  onNavigateToTrackOrder: () => void;
 }
 
 
 
-export const Footer: React.FC<FooterProps> = ({ onNavigateToAdmin, onNavigateToReturnPolicy }) => {
+export const Footer: React.FC<FooterProps> = ({ onNavigateToAdmin, onNavigateToReturnPolicy, onNavigateToTrackOrder }) => {
   const s = useSettings();
   const rawPhone = s.phone.replace(/\+/g, "");
 
@@ -78,6 +79,14 @@ export const Footer: React.FC<FooterProps> = ({ onNavigateToAdmin, onNavigateToR
                   className="text-zinc-400 hover:text-[#E8FF6B] font-bold uppercase tracking-wider text-[10px] transition-colors cursor-pointer"
                 >
                   ↳ View Full Return Policy
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={onNavigateToTrackOrder}
+                  className="text-zinc-400 hover:text-[#E8FF6B] font-bold uppercase tracking-wider text-[10px] transition-colors cursor-pointer"
+                >
+                  ↳ Track My Order
                 </button>
               </li>
             </ul>

@@ -9,6 +9,7 @@ import { CartAndCheckoutDrawer } from "./components/CartAndCheckoutDrawer";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { Footer } from "./components/Footer";
 import { ReturnPolicyPage } from "./components/ReturnPolicyPage";
+import { OrderTrackingPage } from "./components/OrderTrackingPage";
 import { ToastContainer, ToastMessage } from "./components/Toast";
 import { Sparkles, Cpu, RefreshCw, Layers, Compass } from "lucide-react";
 
@@ -16,7 +17,7 @@ import { Sparkles, Cpu, RefreshCw, Layers, Compass } from "lucide-react";
 const StorefrontContent: React.FC = () => {
   const settings = useSettings();
   // Navigation Routing
-  const [currentView, setCurrentView] = useState<"home" | "admin" | "return-policy">("home");
+  const [currentView, setCurrentView] = useState<"home" | "admin" | "return-policy" | "track-order">("home");
 
   // Interactive UI state
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -72,6 +73,15 @@ const StorefrontContent: React.FC = () => {
         <div className="flex-grow animate-fade-in">
           <ReturnPolicyPage 
             onNavigateBack={() => {
+              setCurrentView("home");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          />
+        </div>
+      ) : currentView === "track-order" ? (
+        <div className="flex-grow animate-fade-in">
+          <OrderTrackingPage 
+            onNavigateToHome={() => {
               setCurrentView("home");
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
@@ -259,6 +269,10 @@ const StorefrontContent: React.FC = () => {
         }}
         onNavigateToReturnPolicy={() => {
           setCurrentView("return-policy");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+        onNavigateToTrackOrder={() => {
+          setCurrentView("track-order");
           window.scrollTo({ top: 0, behavior: "smooth" });
         }}
       />
