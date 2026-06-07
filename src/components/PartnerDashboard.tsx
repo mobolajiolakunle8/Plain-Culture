@@ -20,6 +20,30 @@ import {
   AlertCircle
 } from "lucide-react";
 
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  Legend
+} from "recharts";
+
+import {
+  getRevenueChartData,
+  getTopProductsChartData,
+  getOrderStatusChartData,
+  PIE_COLORS,
+  STATUS_COLORS
+} from "../utils/dashboardUtils";
+
 interface PartnerDashboardProps {
   onNavigateToHome: () => void;
   onAddToast?: (text: string, type: "success" | "error" | "info") => void;
@@ -339,6 +363,106 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ onNavigateTo
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ============ VISUAL ANALYTICS ============ */}
+        {activeTab === "overview" && orders.length > 0 && (
+          <div className="space-y-6 pt-4">
+            <div className="flex items-center gap-2 border-b border-zinc-200 dark:border-zinc-900 pb-3">
+              <BarChart3 className="w-5 h-5 text-[#E8FF6B]" />
+              <h2 className="text-sm font-black uppercase tracking-wider text-black dark:text-white">
+                Business Intelligence Charts
+              </h2>
+              <span className="text-[10px] text-zinc-400">Real-time from Firestore</span>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Revenue Line Chart */}
+              <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 rounded-sm p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-black dark:text-white">
+                      Revenue Trend
+                    </h3>
+                    <p className="text-[10px] text-zinc-400 uppercase">Last 30 days (Paid Orders)</p>
+                  </div>
+                  <TrendingUp className="w-5 h-5 text-emerald-500" />
+                </div>
+                <ResponsiveContainer width="100%" height={260}>
+                  <LineChart data={getRevenueChartData(orders)}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
+                    <XAxis dataKey="date" stroke="#71717a" fontSize={10} />
+                    <YAxis stroke="#71717a" fontSize={10} tickFormatter={(v) => `₦${(v / 1000).toFixed(0)}k`} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", fontSize: "12px" }}
+                      formatter={(value: any) => [`₦${Number(value).toLocaleString()}`, "Revenue"]}
+                    />
+                    <Line type="monotone" dataKey="revenue" stroke="#E8FF6B" strokeWidth={2} dot={false} activeDot={{ r: 5, fill: "#E8FF6B" }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Top Products Bar Chart */}
+              <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 rounded-sm p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-black dark:text-white">
+                      Top Selling Products
+                    </h3>
+                    <p className="text-[10px] text-zinc-400 uppercase">By units sold (all-time)</p>
+                  </div>
+                  <ShoppingBag className="w-5 h-5 text-blue-500" />
+                </div>
+                {getTopProductsChartData(orders).length === 0 ? (
+                  <div className="flex items-center justify-center h-[260px] text-xs text-zinc-500">No sales data yet.</div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart data={getTopProductsChartData(orders)} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
+                      <XAxis type="number" stroke="#71717a" fontSize={10} />
+                      <YAxis type="category" dataKey="name" stroke="#71717a" fontSize={10} width={120} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", fontSize: "12px" }}
+                        formatter={(value: any) => [`${Number(value)} units`, "Sold"]}
+                      />
+                      <Bar dataKey="quantity" fill="#E8FF6B" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+
+            {/* Order Status Pie Chart */}
+            <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 rounded-sm p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-black dark:text-white">
+                    Order Status Breakdown
+                  </h3>
+                  <p className="text-[10px] text-zinc-400 uppercase">Current pipeline</p>
+                </div>
+                <ClipboardList className="w-5 h-5 text-purple-500" />
+              </div>
+              {getOrderStatusChartData(orders).length === 0 ? (
+                <div className="flex items-center justify-center h-[260px] text-xs text-zinc-500">No orders recorded yet.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={260}>
+                  <PieChart>
+                    <Pie data={getOrderStatusChartData(orders)} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={4} dataKey="value" label={(entry: any) => `${entry.name}: ${entry.value}`}>
+                      {getOrderStatusChartData(orders).map((entry, idx) => (
+                        <Cell key={idx} fill={(STATUS_COLORS as Record<string, string>)[entry.name] || PIE_COLORS[idx % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Legend wrapperStyle={{ fontSize: "12px" }} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", fontSize: "12px" }}
+                      formatter={(value: any, name: any) => [`${Number(value)} orders`, String(name)]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
         )}

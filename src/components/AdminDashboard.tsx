@@ -33,8 +33,38 @@ import {
   TrendingUp, 
   X, 
   MapPin, 
-  ArrowLeft 
+  ArrowLeft,
+  Download,
+  BarChart3
 } from "lucide-react";
+
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  Legend
+} from "recharts";
+
+import {
+  downloadCSV,
+  convertToCSV,
+  formatOrdersForCSV,
+  formatCustomersForCSV,
+  getRevenueChartData,
+  getTopProductsChartData,
+  getOrderStatusChartData,
+  PIE_COLORS,
+  STATUS_COLORS
+} from "../utils/dashboardUtils";
 
 const PRODUCT_IMAGE_LIMIT = 8;
 
@@ -681,6 +711,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
     }
   };
 
+  // CSV Export handlers
+  const handleExportOrders = () => {
+    if (filteredOrders.length === 0) {
+      onAddToast("No orders to export.", "error");
+      return;
+    }
+    const columns = [
+      { key: "orderId", label: "Order ID" },
+      { key: "status", label: "Status" },
+      { key: "customerName", label: "Customer Name" },
+      { key: "phone", label: "Phone" },
+      { key: "address", label: "Address" },
+      { key: "items", label: "Items" },
+      { key: "totalAmount", label: "Total (₦)" },
+      { key: "createdAt", label: "Order Date" }
+    ];
+    const csv = convertToCSV(formatOrdersForCSV(filteredOrders), columns);
+    downloadCSV(csv, "plain_culture_orders");
+    onAddToast(`Exported ${filteredOrders.length} orders to CSV.`, "success");
+  };
+
+  const handleExportCustomers = () => {
+    if (filteredCustomers.length === 0) {
+      onAddToast("No customers to export.", "error");
+      return;
+    }
+    const columns = [
+      { key: "name", label: "Name" },
+      { key: "phone", label: "Phone" },
+      { key: "email", label: "Email" },
+      { key: "location", label: "Location" },
+      { key: "totalOrders", label: "Total Orders" },
+      { key: "createdAt", label: "Registered" },
+      { key: "updatedAt", label: "Last Updated" }
+    ];
+    const csv = convertToCSV(formatCustomersForCSV(filteredCustomers), columns);
+    downloadCSV(csv, "plain_culture_customers");
+    onAddToast(`Exported ${filteredCustomers.length} customers to CSV.`, "success");
+  };
+
   const handleToggleAdminStatus = async (id: string, name: string, email: string, currentStatus: boolean) => {
     if (!window.confirm(`${currentStatus ? 'Deactivate' : 'Activate'} admin access for ${name}?`)) return;
     try {
@@ -1096,6 +1166,128 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
 
             </div>
 
+            {/* ==========================================
+                VISUAL SALES ANALYTICS (CHARTS)
+                ========================================== */}
+            {orders.length > 0 && (
+              <div className="space-y-6 pt-4">
+                <div className="flex items-center gap-2 border-b border-zinc-200 dark:border-zinc-900 pb-3">
+                  <BarChart3 className="w-5 h-5 text-[#E8FF6B]" />
+                  <h2 className="text-sm font-black uppercase tracking-wider text-black dark:text-white">
+                    Visual Sales Analytics
+                  </h2>
+                  <span className="text-[10px] text-zinc-400">Live from Firestore</span>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Revenue Line Chart — Last 30 Days */}
+                  <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 rounded-sm p-5">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-xs font-black uppercase tracking-wider text-black dark:text-white">
+                          Revenue Trend
+                        </h3>
+                        <p className="text-[10px] text-zinc-400 uppercase">Last 30 days (Confirmed & Delivered)</p>
+                      </div>
+                      <TrendingUp className="w-5 h-5 text-emerald-500" />
+                    </div>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <LineChart data={getRevenueChartData(orders)}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
+                        <XAxis dataKey="date" stroke="#71717a" fontSize={10} />
+                        <YAxis stroke="#71717a" fontSize={10} tickFormatter={(v) => `₦${(v / 1000).toFixed(0)}k`} />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", fontSize: "12px" }}
+                          formatter={(value: any) => [`₦${Number(value).toLocaleString()}`, "Revenue"]}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="revenue"
+                          stroke="#E8FF6B"
+                          strokeWidth={2}
+                          dot={false}
+                          activeDot={{ r: 5, fill: "#E8FF6B" }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Top Products Bar Chart */}
+                  <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 rounded-sm p-5">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-xs font-black uppercase tracking-wider text-black dark:text-white">
+                          Top Selling Products
+                        </h3>
+                        <p className="text-[10px] text-zinc-400 uppercase">By units sold (all-time)</p>
+                      </div>
+                      <ShoppingBag className="w-5 h-5 text-blue-500" />
+                    </div>
+                    {getTopProductsChartData(orders).length === 0 ? (
+                      <div className="flex items-center justify-center h-[260px] text-xs text-zinc-500">
+                        No sales data yet.
+                      </div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height={260}>
+                        <BarChart data={getTopProductsChartData(orders)} layout="vertical">
+                          <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
+                          <XAxis type="number" stroke="#71717a" fontSize={10} />
+                          <YAxis type="category" dataKey="name" stroke="#71717a" fontSize={10} width={120} />
+                          <Tooltip
+                            contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", fontSize: "12px" }}
+                            formatter={(value: any) => [`${Number(value)} units`, "Sold"]}
+                          />
+                          <Bar dataKey="quantity" fill="#E8FF6B" radius={[0, 4, 4, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                </div>
+
+                {/* Order Status Pie Chart */}
+                <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 rounded-sm p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-xs font-black uppercase tracking-wider text-black dark:text-white">
+                        Order Status Breakdown
+                      </h3>
+                      <p className="text-[10px] text-zinc-400 uppercase">Current pipeline</p>
+                    </div>
+                    <ClipboardList className="w-5 h-5 text-purple-500" />
+                  </div>
+                  {getOrderStatusChartData(orders).length === 0 ? (
+                    <div className="flex items-center justify-center h-[260px] text-xs text-zinc-500">
+                      No orders recorded yet.
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={260}>
+                      <PieChart>
+                        <Pie
+                          data={getOrderStatusChartData(orders)}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={100}
+                          paddingAngle={4}
+                          dataKey="value"
+                          label={(entry) => `${entry.name}: ${entry.value}`}
+                        >
+                          {getOrderStatusChartData(orders).map((entry, idx) => (
+                            <Cell key={idx} fill={(STATUS_COLORS as Record<string, string>)[entry.name] || PIE_COLORS[idx % PIE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Legend wrapperStyle={{ fontSize: "12px" }} />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "4px", fontSize: "12px" }}
+                          formatter={(value: any, name: any) => [`${Number(value)} orders`, String(name)]}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Quick Actions & Urgent Stock Panel */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               
@@ -1319,6 +1511,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
                 </h2>
                 <p className="text-xs text-zinc-400">Review pending checkout logs and change dispatch fulfillment states.</p>
               </div>
+              <button
+                type="button"
+                onClick={handleExportOrders}
+                className="flex items-center gap-2 px-4 py-2.5 bg-black dark:bg-[#E8FF6B] text-white dark:text-black font-extrabold text-xs uppercase tracking-widest rounded-sm hover:opacity-90 transition-opacity cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>Export CSV</span>
+              </button>
             </div>
 
             {/* Filter and Search controls */}
@@ -1518,13 +1718,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
                 <p className="text-xs text-zinc-400">Keep track of retail locations, orders frequencies, and physical buyer registers.</p>
               </div>
 
-              <button
-                onClick={() => setIsCustomerModalOpen(true)}
-                className="px-4 py-2.5 bg-[#E8FF6B] hover:bg-[#d0e54d] text-black font-extrabold text-xs uppercase tracking-widest flex items-center gap-1.5 rounded-sm transition-all cursor-pointer"
-              >
-                <PlusCircle className="w-4.5 h-4.5" />
-                <span>ADD PHYSICAL CUSTOMER</span>
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleExportCustomers}
+                  className="px-4 py-2.5 bg-black dark:bg-white text-white dark:text-black font-extrabold text-xs uppercase tracking-widest flex items-center gap-1.5 rounded-sm hover:opacity-90 transition-opacity cursor-pointer"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Export CSV</span>
+                </button>
+                <button
+                  onClick={() => setIsCustomerModalOpen(true)}
+                  className="px-4 py-2.5 bg-[#E8FF6B] hover:bg-[#d0e54d] text-black font-extrabold text-xs uppercase tracking-widest flex items-center gap-1.5 rounded-sm transition-all cursor-pointer"
+                >
+                  <PlusCircle className="w-4.5 h-4.5" />
+                  <span>ADD CUSTOMER</span>
+                </button>
+              </div>
             </div>
 
             {/* Customer search bar */}
