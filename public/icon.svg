@@ -1,0 +1,19 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background: Black rounded square -->
+  <rect width="512" height="512" rx="115" fill="#000000"/>
+  
+  <!-- 
+    The "C" Mark with horizontal bar.
+    Drawn using strokes to match the thickness of the brand logo.
+    Color: Off-white (#ECECE6) to match the premium look.
+  -->
+  <g fill="none" stroke="#ECECE6" stroke-width="34">
+    <!-- The C Arc (open on the right side) -->
+    <path d="M 340 175 
+             A 90 90 0 1 0 340 337" 
+          stroke-linecap="butt"/>
+    
+    <!-- The horizontal bar inside the C -->
+    <line x1="256" y1="256" x2="350" y2="256"/>
+  </g>
+</svg>
