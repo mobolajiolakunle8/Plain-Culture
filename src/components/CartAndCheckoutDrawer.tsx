@@ -495,9 +495,7 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
                 {/* Delivery Zone Selector */}
                 <div>
                   <label className="block text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-1.5">
-                    Delivery Location / Landmark 
-                    <p className="text-[10px] text-zinc-400 mt-1">Kindly note that your order will be delivered to the landmark specified during the checkout process.
-                      )*
+                    Delivery Location / Landmark *
                   </label>
                   <select
                     value={formData.deliveryZoneId}
