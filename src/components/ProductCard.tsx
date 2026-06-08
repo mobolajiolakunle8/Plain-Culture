@@ -76,59 +76,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPreview, on
         )}
 
         {/* View Details Hover Overlay */}
-        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2">
+        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
           <button onClick={() => onPreview(product)} className="flex items-center gap-2 px-4 py-2.5 bg-[#E8FF6B] text-black font-extrabold text-xs uppercase tracking-wider rounded-sm transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 cursor-pointer">
             <Eye className="w-3.5 h-3.5" />
             <span>VIEW DROP PIECE</span>
           </button>
-          {/* Public share button for customers */}
-          <div className="relative transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShareOpen((prev) => !prev);
-              }}
-              className="flex items-center gap-1.5 px-3 py-2.5 bg-black/70 text-white border border-white/20 hover:bg-[#E8FF6B] hover:text-black hover:border-[#E8FF6B] font-extrabold text-xs uppercase tracking-wider rounded-sm cursor-pointer"
-            >
-              {copied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
-              <span>{copied ? "COPIED" : "SHARE"}</span>
-            </button>
-
-            {shareOpen && (
-              <div
-                onClick={(e) => e.stopPropagation()}
-                className="absolute right-0 top-full mt-2 w-52 bg-black border border-zinc-800 rounded-sm shadow-2xl overflow-hidden z-20"
-              >
-                <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-[#E8FF6B]">Share Drop</span>
-                  <button onClick={() => setShareOpen(false)} className="text-zinc-500 hover:text-white cursor-pointer">
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-                <button
-                  onClick={handleCopyLink}
-                  className="w-full px-3 py-2.5 flex items-center gap-2 text-xs text-zinc-300 hover:bg-zinc-900 hover:text-[#E8FF6B] transition-colors cursor-pointer text-left"
-                >
-                  <Copy className="w-4 h-4" />
-                  <span>Copy link</span>
-                </button>
-                <button
-                  onClick={handleWhatsAppShare}
-                  className="w-full px-3 py-2.5 flex items-center gap-2 text-xs text-zinc-300 hover:bg-zinc-900 hover:text-[#E8FF6B] transition-colors cursor-pointer text-left"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  <span>Share to WhatsApp</span>
-                </button>
-                <button
-                  onClick={handleInstagramGuide}
-                  className="w-full px-3 py-2.5 flex items-center gap-2 text-xs text-zinc-300 hover:bg-zinc-900 hover:text-[#E8FF6B] transition-colors cursor-pointer text-left"
-                >
-                  <Camera className="w-4 h-4" />
-                  <span>Instagram Story guide</span>
-                </button>
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
@@ -144,12 +96,64 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPreview, on
             </span>
           </div>
 
-          <h3 
-            onClick={() => onPreview(product)}
-            className="text-base font-bold text-zinc-900 dark:text-zinc-100 uppercase tracking-wide mb-1 hover:text-[#E8FF6B] dark:hover:text-[#E8FF6B] cursor-pointer transition-colors"
-          >
-            {product.name}
-          </h3>
+          <div className="flex items-start justify-between gap-3 mb-1">
+            <h3 
+              onClick={() => onPreview(product)}
+              className="text-base font-bold text-zinc-900 dark:text-zinc-100 uppercase tracking-wide hover:text-[#E8FF6B] dark:hover:text-[#E8FF6B] cursor-pointer transition-colors leading-tight"
+            >
+              {product.name}
+            </h3>
+
+            {/* Compact public share icon beside each product */}
+            <div className="relative shrink-0">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShareOpen((prev) => !prev);
+                }}
+                className="p-2 rounded-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:bg-[#E8FF6B] hover:text-black hover:border-[#E8FF6B] transition-all cursor-pointer"
+                title="Share product"
+                aria-label="Share product"
+              >
+                {copied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+              </button>
+
+              {shareOpen && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute right-0 top-full mt-2 w-52 bg-black border border-zinc-800 rounded-sm shadow-2xl overflow-hidden z-20"
+                >
+                  <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[#E8FF6B]">Share Drop</span>
+                    <button onClick={() => setShareOpen(false)} className="text-zinc-500 hover:text-white cursor-pointer">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <button
+                    onClick={handleCopyLink}
+                    className="w-full px-3 py-2.5 flex items-center gap-2 text-xs text-zinc-300 hover:bg-zinc-900 hover:text-[#E8FF6B] transition-colors cursor-pointer text-left"
+                  >
+                    <Copy className="w-4 h-4" />
+                    <span>Copy link</span>
+                  </button>
+                  <button
+                    onClick={handleWhatsAppShare}
+                    className="w-full px-3 py-2.5 flex items-center gap-2 text-xs text-zinc-300 hover:bg-zinc-900 hover:text-[#E8FF6B] transition-colors cursor-pointer text-left"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>Share to WhatsApp</span>
+                  </button>
+                  <button
+                    onClick={handleInstagramGuide}
+                    className="w-full px-3 py-2.5 flex items-center gap-2 text-xs text-zinc-300 hover:bg-zinc-900 hover:text-[#E8FF6B] transition-colors cursor-pointer text-left"
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span>Instagram Story guide</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="mt-4 pt-3 border-t border-zinc-200 dark:border-zinc-900 flex items-center justify-between">
