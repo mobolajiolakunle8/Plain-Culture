@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Product } from "../lib/firebase";
-import { useAuth } from "../context/AppContext";
-import { Eye, Share2, Check } from "lucide-react";
+import { Eye, Share2, Check, Copy, MessageCircle, Camera, X } from "lucide-react";
 
 interface ProductCardProps {
   product: Product;
@@ -10,21 +9,34 @@ interface ProductCardProps {
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product, onPreview, onAddToast }) => {
-  const { isAdmin } = useAuth();
   const [copied, setCopied] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const isSoldOut = product.stockQuantity <= 0;
   const isLowStock = product.stockQuantity > 0 && product.stockQuantity <= 5;
 
-  const handleShare = (e: React.MouseEvent) => {
+  const shareUrl = `${window.location.origin}?product=${product.id}`;
+  const shareText = `Plain Culture Drop: ${product.name} - ₦${product.price.toLocaleString()}. Limited pieces available. Shop here: ${shareUrl}`;
+
+  const handleCopyLink = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const shareUrl = `${window.location.origin}?product=${product.id}`;
     navigator.clipboard.writeText(shareUrl).then(() => {
       setCopied(true);
-      onAddToast?.("Product link copied to clipboard!", "success");
+      onAddToast?.("Product link copied!", "success");
       setTimeout(() => setCopied(false), 2000);
     }).catch(() => {
       onAddToast?.("Failed to copy link. Please try again.", "error");
     });
+  };
+
+  const handleWhatsAppShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank");
+  };
+
+  const handleInstagramGuide = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(shareUrl).catch(() => {});
+    onAddToast?.("Instagram Story tip: Screenshot this product, open Instagram Story, add a Link sticker, and paste the copied product link.", "info");
   };
 
   return (
@@ -69,13 +81,54 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPreview, on
             <Eye className="w-3.5 h-3.5" />
             <span>VIEW DROP PIECE</span>
           </button>
-          {/* Share button - only visible to logged in admins */}
-          {isAdmin && (
-            <button onClick={handleShare} className="flex items-center gap-1.5 px-3 py-2.5 bg-black/70 text-white border border-white/20 hover:bg-[#E8FF6B] hover:text-black hover:border-[#E8FF6B] font-extrabold text-xs uppercase tracking-wider rounded-sm transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 cursor-pointer">
+          {/* Public share button for customers */}
+          <div className="relative transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShareOpen((prev) => !prev);
+              }}
+              className="flex items-center gap-1.5 px-3 py-2.5 bg-black/70 text-white border border-white/20 hover:bg-[#E8FF6B] hover:text-black hover:border-[#E8FF6B] font-extrabold text-xs uppercase tracking-wider rounded-sm cursor-pointer"
+            >
               {copied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
               <span>{copied ? "COPIED" : "SHARE"}</span>
             </button>
-          )}
+
+            {shareOpen && (
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="absolute right-0 top-full mt-2 w-52 bg-black border border-zinc-800 rounded-sm shadow-2xl overflow-hidden z-20"
+              >
+                <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[#E8FF6B]">Share Drop</span>
+                  <button onClick={() => setShareOpen(false)} className="text-zinc-500 hover:text-white cursor-pointer">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <button
+                  onClick={handleCopyLink}
+                  className="w-full px-3 py-2.5 flex items-center gap-2 text-xs text-zinc-300 hover:bg-zinc-900 hover:text-[#E8FF6B] transition-colors cursor-pointer text-left"
+                >
+                  <Copy className="w-4 h-4" />
+                  <span>Copy link</span>
+                </button>
+                <button
+                  onClick={handleWhatsAppShare}
+                  className="w-full px-3 py-2.5 flex items-center gap-2 text-xs text-zinc-300 hover:bg-zinc-900 hover:text-[#E8FF6B] transition-colors cursor-pointer text-left"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>Share to WhatsApp</span>
+                </button>
+                <button
+                  onClick={handleInstagramGuide}
+                  className="w-full px-3 py-2.5 flex items-center gap-2 text-xs text-zinc-300 hover:bg-zinc-900 hover:text-[#E8FF6B] transition-colors cursor-pointer text-left"
+                >
+                  <Camera className="w-4 h-4" />
+                  <span>Instagram Story guide</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
