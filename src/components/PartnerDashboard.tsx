@@ -13,11 +13,7 @@ import {
   Truck,
   ShieldCheck,
   BarChart3,
-  Eye,
-  Lock,
-  EyeOff,
-  KeyRound,
-  AlertCircle
+  Eye
 } from "lucide-react";
 
 import {
@@ -46,28 +42,15 @@ import {
 
 interface PartnerDashboardProps {
   onNavigateToHome: () => void;
-  onAddToast?: (text: string, type: "success" | "error" | "info") => void;
 }
 
-export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ onNavigateToHome, onAddToast }) => {
+export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ onNavigateToHome }) => {
   const { user, logout } = useAuth();
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [activeTab, setActiveTab] = useState<"overview" | "orders" | "security">("overview");
-
-  // Password change form state
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: ""
-  });
-  const [showPasswords, setShowPasswords] = useState({
-    current: false,
-    new: false,
-    confirm: false
-  });
+  const [activeTab, setActiveTab] = useState<"overview" | "orders">("overview");
 
   useEffect(() => {
     if (!user) return;
@@ -126,43 +109,6 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ onNavigateTo
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
-  const notify = onAddToast || (() => {});
-
-  const handlePasswordChange = async () => {
-    if (!user) return;
-
-    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
-      notify("Please fill in all password fields.", "error");
-      return;
-    }
-
-    if (passwordForm.newPassword.length < 8) {
-      notify("New password must be at least 8 characters.", "error");
-      return;
-    }
-
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      notify("New passwords do not match.", "error");
-      return;
-    }
-
-    try {
-      await dbService.updateSelfPassword(
-        user.email,
-        passwordForm.currentPassword,
-        passwordForm.newPassword
-      );
-
-      // Log the password change for Super Admin visibility
-      dbService.logActivity(user.email, user.name, `Changed their account password.`);
-
-      notify("Password changed successfully. You'll need the new password on next login.", "success");
-      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
-    } catch (error: any) {
-      notify(error.message || "Failed to change password.", "error");
-    }
-  };
-
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black text-black dark:text-white transition-colors duration-300">
 
@@ -212,7 +158,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ onNavigateTo
             {[
               { id: "overview", label: "Financial Overview", icon: BarChart3 },
               { id: "orders", label: "Orders", icon: ClipboardList },
-              { id: "security", label: "Account Security", icon: Lock }
+              { id: "orders", label: "Orders", icon: ClipboardList }
             ].map((tab) => {
               const Icon = tab.icon;
               return (
@@ -520,112 +466,7 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ onNavigateTo
           </div>
         )}
 
-        {/* ============ ACCOUNT SECURITY TAB ============ */}
-        {activeTab === "security" && (
-          <div className="space-y-6 animate-fade-in max-w-2xl">
-            <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 rounded-sm p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <KeyRound className="w-5 h-5 text-[#E8FF6B]" />
-                <h3 className="text-sm font-black uppercase tracking-wider text-black dark:text-white">Change Password</h3>
-              </div>
-              <p className="text-xs text-zinc-500 mb-6">Update your login password. Your account email cannot be changed from here.</p>
 
-              <div className="space-y-4">
-                {/* Current password */}
-                <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-zinc-500 mb-1.5">Current Password</label>
-                  <div className="relative">
-                    <input
-                      type={showPasswords.current ? "text" : "password"}
-                      value={passwordForm.currentPassword}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                      placeholder="Enter your current password"
-                      className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 pr-10 text-sm focus:outline-none focus:border-[#E8FF6B]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
-                      className="absolute right-3 top-3 text-zinc-400 hover:text-white cursor-pointer"
-                      title={showPasswords.current ? "Hide" : "Show"}
-                    >
-                      {showPasswords.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* New password */}
-                <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-zinc-500 mb-1.5">New Password</label>
-                  <div className="relative">
-                    <input
-                      type={showPasswords.new ? "text" : "password"}
-                      value={passwordForm.newPassword}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                      placeholder="Minimum 8 characters"
-                      className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 pr-10 text-sm focus:outline-none focus:border-[#E8FF6B]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
-                      className="absolute right-3 top-3 text-zinc-400 hover:text-white cursor-pointer"
-                      title={showPasswords.new ? "Hide" : "Show"}
-                    >
-                      {showPasswords.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Confirm password */}
-                <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-zinc-500 mb-1.5">Confirm New Password</label>
-                  <div className="relative">
-                    <input
-                      type={showPasswords.confirm ? "text" : "password"}
-                      value={passwordForm.confirmPassword}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                      placeholder="Re-enter your new password"
-                      className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 pr-10 text-sm focus:outline-none focus:border-[#E8FF6B]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
-                      className="absolute right-3 top-3 text-zinc-400 hover:text-white cursor-pointer"
-                      title={showPasswords.confirm ? "Hide" : "Show"}
-                    >
-                      {showPasswords.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2 text-[10px] text-zinc-400 pt-2">
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                  <span>Password must be at least 8 characters. You'll need to use the new password the next time you log in on any device.</span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handlePasswordChange}
-                  className="w-full px-5 py-3 bg-[#E8FF6B] text-black font-extrabold uppercase tracking-widest text-xs rounded-sm hover:opacity-90 transition-opacity cursor-pointer"
-                >
-                  Update Password
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 rounded-sm p-5">
-              <h4 className="text-xs font-black uppercase tracking-wider text-black dark:text-white mb-3 flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-[#E8FF6B]" />
-                Security Tips
-              </h4>
-              <ul className="space-y-2 text-[11px] text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                <li>• Never share your password with anyone, including Plain Culture staff.</li>
-                <li>• Use a unique password that isn't used on other websites.</li>
-                <li>• Your password change is immediately synced across all devices.</li>
-                <li>• Password changes are logged and visible to the Super Admin for security.</li>
-              </ul>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -85,7 +85,7 @@ interface CartContextType {
   cartTotal: number;
   cartCount: number;
   isCheckingOut: boolean;
-  submitCheckout: (checkoutForm: { name: string; phone: string; address: string; email?: string }) => Promise<Order | null>;
+  submitCheckout: (checkoutForm: { name: string; phone: string; address: string; email?: string; deliveryFee?: number; deliveryLocation?: string }) => Promise<Order | null>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -174,7 +174,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const cartTotal = cart.reduce((total, item) => total + item.price * item.qty, 0);
   const cartCount = cart.reduce((count, item) => count + item.qty, 0);
 
-  const submitCheckout = async (checkoutForm: { name: string; phone: string; address: string; email?: string }) => {
+  const submitCheckout = async (checkoutForm: { name: string; phone: string; address: string; email?: string; deliveryFee?: number; deliveryLocation?: string }) => {
     if (cart.length === 0) return null;
     setIsCheckingOut(true);
 
@@ -192,12 +192,18 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // 2. Submit order to DB service (triggers stock update and customer profile syncing)
+      const deliveryFee = checkoutForm.deliveryFee || 0;
+      const deliveryLocation = checkoutForm.deliveryLocation || "";
+      const grandTotal = cartTotal + deliveryFee;
+
       const orderData = {
         customerName: checkoutForm.name,
         phone: checkoutForm.phone,
         address: checkoutForm.address,
         items: cart,
-        totalAmount: cartTotal
+        totalAmount: grandTotal,
+        deliveryFee,
+        deliveryLocation
       };
 
       const createdOrder = await dbService.addOrder(orderData);
@@ -213,13 +219,21 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .map((item) => `• ${item.name} (${item.size}) x ${item.qty}`)
         .join("\n");
 
+      const deliveryLine = deliveryLocation
+        ? deliveryFee > 0
+          ? `Delivery Location: ${deliveryLocation}\nDelivery Fee: ₦${deliveryFee.toLocaleString()}`
+          : `Delivery Location: ${deliveryLocation}\nDelivery Fee: To be quoted via WhatsApp`
+        : "";
+
       const message = `Hello, I want to confirm my order:
 
 Order ID: #${createdOrder.id}
 Items:
 ${itemsString}
 
-Total: ₦${orderData.totalAmount.toLocaleString()}
+Subtotal: ₦${cartTotal.toLocaleString()}
+${deliveryLine}
+Total (incl. delivery): ₦${orderData.totalAmount.toLocaleString()}
 Name: ${orderData.customerName}
 Phone: ${orderData.phone}
 Address: ${orderData.address}
@@ -271,41 +285,6 @@ Address: ${orderData.address}
         console.error("Web3Forms email notification failed (order still saved):", emailError);
       }
 
-      // ==========================================
-      // SEND CUSTOMER RECEIPT VIA EMAIL
-      // ==========================================
-      if (checkoutForm.email) {
-        try {
-          await fetch("https://api.web3forms.com/submit", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Accept": "application/json"
-            },
-            body: JSON.stringify({
-              access_key: WEB3FORMS_ACCESS_KEY,
-              subject: `Order Confirmation #${createdOrder.id} - Plain Culture`,
-              from_name: "Plain Culture",
-              to_email: checkoutForm.email, // Send directly to customer
-              // Customer info
-              customer_name: orderData.customerName,
-              order_id: createdOrder.id,
-              order_status: "Pending Payment Confirmation",
-              order_total: `₦${orderData.totalAmount.toLocaleString()}`,
-              order_date: new Date(createdOrder.createdAt).toLocaleString(),
-              // Items
-              order_items: itemsString,
-              // Message with WhatsApp link
-              message: `Hello ${orderData.customerName},\n\nThank you for shopping with Plain Culture! We have received your order.\n\nOrder ID: #${createdOrder.id}\nStatus: Pending Payment Confirmation\nTotal: ₦${orderData.totalAmount.toLocaleString()}\n\nItems:\n${itemsString}\n\nPlease click the link below to confirm your payment and complete your order via WhatsApp:\nhttps://wa.me/${shopPhone}?text=${encodedMessage}\n\nThank you for choosing Plain Culture.`,
-              botcheck: ""
-            })
-          });
-          console.log(`📧 Receipt sent to customer at ${checkoutForm.email}`);
-        } catch (customerEmailError) {
-          console.error("Web3Forms customer receipt failed:", customerEmailError);
-        }
-      }
-      
       // Delay slightly for smooth transitions
       setTimeout(() => {
         window.open(whatsappUrl, "_blank");

@@ -100,6 +100,8 @@ export interface Order {
   address: string;
   items: OrderItem[];
   totalAmount: number;
+  deliveryFee?: number;
+  deliveryLocation?: string;
   status: "Pending" | "Confirmed" | "Delivered";
   createdAt: string; // ISO string
 }
@@ -304,6 +306,38 @@ const DEFAULT_SETTINGS = {
     { label: "Sand", value: "/images/tee_sand.jpg" },
     { label: "Charcoal", value: "/images/tee_charcoal.jpg" },
     { label: "Olive", value: "/images/tee_olive.jpg" }
+  ],
+  deliveryZones: [
+    { id: "dz-1",  landmark: "UI / University of Ibadan",      fee: 1000 },
+    { id: "dz-2",  landmark: "Bodija Market",                   fee: 1000 },
+    { id: "dz-3",  landmark: "Bodija Estate",                   fee: 1000 },
+    { id: "dz-4",  landmark: "Agodi / Agodi Gate",              fee: 1000 },
+    { id: "dz-5",  landmark: "Aleshinloye / Mokola",            fee: 1200 },
+    { id: "dz-6",  landmark: "Ring Road / Dugbe",               fee: 1500 },
+    { id: "dz-7",  landmark: "Secretariat / Challenge",         fee: 1500 },
+    { id: "dz-8",  landmark: "Iwo Road / New Garage",           fee: 1500 },
+    { id: "dz-9",  landmark: "Ojoo / Iwo Road Express",         fee: 1500 },
+    { id: "dz-10", landmark: "Akobo / Akobo Ojurin",            fee: 2000 },
+    { id: "dz-11", landmark: "Ajibode / Akobo Basin",           fee: 2000 },
+    { id: "dz-12", landmark: "Oluyole / Adamasingba",           fee: 1500 },
+    { id: "dz-13", landmark: "Apata / Abule Ijebu",             fee: 1500 },
+    { id: "dz-14", landmark: "Sango / Eleyele",                 fee: 1500 },
+    { id: "dz-15", landmark: "Iyaganku / Jericho",              fee: 1200 },
+    { id: "dz-16", landmark: "Samonda / Ashi",                  fee: 1200 },
+    { id: "dz-17", landmark: "Eleiyele / Basorun",              fee: 1500 },
+    { id: "dz-18", landmark: "Alao Akala / Toll Gate",          fee: 1500 },
+    { id: "dz-19", landmark: "Egbeda / Awotan",                 fee: 2000 },
+    { id: "dz-20", landmark: "Akala / Olunde",                  fee: 2000 },
+    { id: "dz-21", landmark: "Moniya / Apete",                  fee: 2000 },
+    { id: "dz-22", landmark: "Beere / Oja Oba",                 fee: 1500 },
+    { id: "dz-23", landmark: "Orita / Oke-Bola",                fee: 1500 },
+    { id: "dz-24", landmark: "Yemetu / Oke-Ado",                fee: 1500 },
+    { id: "dz-25", landmark: "Oke-Padre / Odo-Ona",             fee: 1500 },
+    { id: "dz-26", landmark: "Ido / Ido Station",               fee: 2000 },
+    { id: "dz-27", landmark: "Kabba Road / Idi-Ape",            fee: 2000 },
+    { id: "dz-28", landmark: "Agugu / Oremeji",                 fee: 2000 },
+    { id: "dz-29", landmark: "Olodo / Elebu",                   fee: 2500 },
+    { id: "dz-30", landmark: "Other State (WhatsApp Quote)",    fee: -1  }
   ]
 };
 

@@ -104,16 +104,22 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
 
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>("cart");
   const [formData, setFormData] = useState({
-    countryCode: "+234", // Default to Nigeria
+    countryCode: "+234",
     phone: "",
     name: "",
     address: "",
-    email: ""
+    email: "",
+    deliveryZoneId: "",
+    deliveryFee: 0
   });
 
   const [emailValidating, setEmailValidating] = useState(false);
   const [emailValid, setEmailValid] = useState<boolean | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const deliveryZones = settings.deliveryZones || [];
+  const selectedZone = deliveryZones.find(z => z.id === formData.deliveryZoneId);
+  const isOutsideIbadan = selectedZone?.fee === -1;
 
   if (!isOpen) return null;
 
@@ -187,6 +193,12 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
         onAddToast("Please enter your delivery address.", "error");
         return;
       }
+
+      // Delivery zone is mandatory
+      if (!formData.deliveryZoneId) {
+        onAddToast("Please select your delivery location / landmark.", "error");
+        return;
+      }
       
       // Validate email if provided
       if (formData.email) {
@@ -220,19 +232,22 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
 
   const handleFinalSubmit = async () => {
     const fullPhone = `${formData.countryCode}${formData.phone}`;
-    
+    const locationLabel = selectedZone?.landmark || "";
+
     const createdOrder = await submitCheckout({
       name: formData.name,
       phone: fullPhone,
-      address: formData.address,
-      email: formData.email
+      address: `${formData.address} (${locationLabel})`,
+      email: formData.email,
+      deliveryFee: isOutsideIbadan ? 0 : formData.deliveryFee,
+      deliveryLocation: locationLabel
     });
 
     if (createdOrder) {
       onAddToast(`Order #${createdOrder.id} received! Redirecting to WhatsApp for confirmation...`, "success");
       
       // Reset form and close
-      setFormData({ countryCode: "+234", phone: "", name: "", address: "", email: "" });
+      setFormData({ countryCode: "+234", phone: "", name: "", address: "", email: "", deliveryZoneId: "", deliveryFee: 0 });
       setCheckoutStep("cart");
       onClose();
     }
@@ -477,6 +492,44 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
                   <p className="text-[10px] text-zinc-400 mt-1">Provide clear landmarks to ensure swift courier navigation within Ibadan.</p>
                 </div>
 
+                {/* Delivery Zone Selector */}
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-1.5">
+                    Delivery Location / Landmark *
+                  </label>
+                  <select
+                    value={formData.deliveryZoneId}
+                    onChange={(e) => {
+                      const zone = deliveryZones.find(z => z.id === e.target.value);
+                      setFormData(prev => ({
+                        ...prev,
+                        deliveryZoneId: e.target.value,
+                        deliveryFee: zone?.fee === -1 ? 0 : (zone?.fee || 0)
+                      }));
+                    }}
+                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-sm focus:outline-none focus:border-[#E8FF6B] text-black dark:text-white"
+                  >
+                    <option value="">— Select your closest landmark —</option>
+                    {deliveryZones.map(zone => (
+                      <option key={zone.id} value={zone.id}>
+                        {zone.landmark}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Fee display */}
+                  {formData.deliveryZoneId && (
+                    <div className={`mt-2 p-2.5 rounded-sm text-xs font-bold flex items-center justify-between ${
+                      isOutsideIbadan
+                        ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                        : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                    }`}>
+                      <span>{isOutsideIbadan ? "Delivery rate will be discussed via WhatsApp." : "Delivery Fee:"}</span>
+                      {!isOutsideIbadan && <span>₦{formData.deliveryFee.toLocaleString()}</span>}
+                    </div>
+                  )}
+                </div>
+
                 <div>
                   <label className="block text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-1.5 flex items-center gap-2">
                     <Mail className="w-3.5 h-3.5" />
@@ -627,15 +680,23 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
                   <span>₦{cartTotal.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-xs text-zinc-500">
-                  <span>Dispatch Delivery (Ibadan courier)</span>
-                  <span className="text-emerald-500 font-semibold uppercase">Free Drop Shipping</span>
+                  <span>Delivery Fee {selectedZone ? `(${selectedZone.landmark})` : ""}</span>
+                  {!selectedZone
+                    ? <span className="text-zinc-400">Select location</span>
+                    : isOutsideIbadan
+                      ? <span className="text-amber-500 font-semibold">Via WhatsApp</span>
+                      : formData.deliveryFee === 0
+                        ? <span className="text-emerald-500 font-semibold">Free</span>
+                        : <span>₦{formData.deliveryFee.toLocaleString()}</span>
+                  }
                 </div>
                 <div className="flex justify-between items-center pt-2 border-t border-zinc-200 dark:border-zinc-900">
                   <span className="text-sm font-bold uppercase tracking-wider text-zinc-900 dark:text-zinc-100">
                     TOTAL AMOUNT
                   </span>
                   <span className="text-lg font-black text-black dark:text-white">
-                    ₦{cartTotal.toLocaleString()}
+                    ₦{(cartTotal + (isOutsideIbadan ? 0 : formData.deliveryFee)).toLocaleString()}
+                    {isOutsideIbadan && <span className="text-xs font-normal text-amber-500 block text-right">+ delivery TBD</span>}
                   </span>
                 </div>
               </div>

@@ -997,7 +997,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
   // Business Partners get a dedicated executive read-only dashboard, never the admin panel.
   // ==========================================
   if (user.role === "Partner") {
-    return <PartnerDashboard onNavigateToHome={onNavigateToHome} onAddToast={onAddToast} />;
+    return <PartnerDashboard onNavigateToHome={onNavigateToHome} />;
   }
 
   // ==========================================
@@ -2429,6 +2429,82 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
                 </div>
               </div>
             </div>
+
+            {/* SECTION H: DELIVERY ZONES (Super Admin only) */}
+            {user?.role === "Super Admin" && (
+            <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 rounded-sm p-6">
+              <h2 className="text-base font-black uppercase tracking-wider text-black dark:text-white mb-1 flex items-center gap-2">
+                <span className="w-2 h-2 bg-[#E8FF6B] rounded-full" />
+                DELIVERY ZONES & PRICING
+              </h2>
+              <p className="text-xs text-zinc-500 mb-5">Set delivery fees per Ibadan landmark. Customers must select a location at checkout. Use <strong>-1</strong> as the fee to show "Via WhatsApp" (for other states).</p>
+
+              <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+                {(storeSettings.deliveryZones || []).map((zone, idx) => (
+                  <div key={zone.id} className="flex items-center gap-3 p-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-sm">
+                    <span className="text-[10px] font-mono text-zinc-400 w-6 shrink-0">{idx + 1}</span>
+                    <input
+                      type="text"
+                      value={zone.landmark}
+                      onChange={(e) => {
+                        const updated = [...(storeSettings.deliveryZones || [])];
+                        updated[idx] = { ...updated[idx], landmark: e.target.value };
+                        const updatedSettings = dbService.updateSettings({ deliveryZones: updated });
+                        setStoreSettings(updatedSettings);
+                      }}
+                      className="flex-1 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-2 py-1.5 text-xs focus:outline-none focus:border-[#E8FF6B] text-black dark:text-white"
+                      placeholder="Landmark name"
+                    />
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className="text-xs text-zinc-400 font-bold">₦</span>
+                      <input
+                        type="number"
+                        value={zone.fee}
+                        onChange={(e) => {
+                          const updated = [...(storeSettings.deliveryZones || [])];
+                          updated[idx] = { ...updated[idx], fee: Number(e.target.value) };
+                          const updatedSettings = dbService.updateSettings({ deliveryZones: updated });
+                          setStoreSettings(updatedSettings);
+                        }}
+                        className="w-24 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 px-2 py-1.5 text-xs focus:outline-none focus:border-[#E8FF6B] text-black dark:text-white text-right font-mono"
+                        placeholder="0"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!window.confirm(`Remove "${zone.landmark}"?`)) return;
+                        const updated = (storeSettings.deliveryZones || []).filter((_, i) => i !== idx);
+                        const updatedSettings = dbService.updateSettings({ deliveryZones: updated });
+                        setStoreSettings(updatedSettings);
+                      }}
+                      className="text-red-500 hover:bg-red-500/10 p-1.5 rounded cursor-pointer shrink-0"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const newZone = {
+                    id: `dz-${Date.now()}`,
+                    landmark: "",
+                    fee: 0
+                  };
+                  const updated = [...(storeSettings.deliveryZones || []), newZone];
+                  const updatedSettings = dbService.updateSettings({ deliveryZones: updated });
+                  setStoreSettings(updatedSettings);
+                  onAddToast("New delivery zone added.", "info");
+                }}
+                className="mt-4 px-4 py-2 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs font-bold uppercase tracking-wider rounded-sm hover:border-[#E8FF6B] transition-colors cursor-pointer text-black dark:text-white"
+              >
+                + Add New Zone
+              </button>
+            </div>
+            )}
 
             {/* SECTION H: SOCIAL MEDIA HANDLES */}
             <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 rounded-sm p-6">
