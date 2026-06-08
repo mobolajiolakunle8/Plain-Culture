@@ -63,7 +63,8 @@ import {
   getTopProductsChartData,
   getOrderStatusChartData,
   PIE_COLORS,
-  STATUS_COLORS
+  STATUS_COLORS,
+  getDistanceFromLatLonInKm
 } from "../utils/dashboardUtils";
 
 const PRODUCT_IMAGE_LIMIT = 8;
@@ -212,6 +213,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
     brandName: storeSettings.brandName,
     brandTagline: storeSettings.brandTagline,
     physicalAddress: storeSettings.physicalAddress,
+    storeLat: storeSettings.storeLat || 0,
+    storeLng: storeSettings.storeLng || 0,
     heroTitle: storeSettings.heroTitle,
     heroSubtitle: storeSettings.heroSubtitle,
     heroImageDesktop: storeSettings.heroImageDesktop || "/images/hero.jpg",
@@ -251,6 +254,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
       brandName: storeSettings.brandName,
       brandTagline: storeSettings.brandTagline,
       physicalAddress: storeSettings.physicalAddress,
+      storeLat: storeSettings.storeLat || 0,
+      storeLng: storeSettings.storeLng || 0,
       heroTitle: storeSettings.heroTitle,
       heroSubtitle: storeSettings.heroSubtitle,
       heroImageDesktop: storeSettings.heroImageDesktop || "/images/hero.jpg",
@@ -835,6 +840,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
       marqueeEnabled: settingsForm.marqueeEnabled,
       dropEndDate: dropEndIso,
       countdownEnabled: settingsForm.countdownEnabled,
+      storeLat: settingsForm.storeLat,
+      storeLng: settingsForm.storeLng,
       logoUrl: settingsForm.logoUrl,
       logoUrlDark: settingsForm.logoUrlDark,
       logoUrlLight: settingsForm.logoUrlLight,
@@ -1569,18 +1576,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
                       key={order.id} 
                       className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 p-6 rounded-sm space-y-4 shadow-sm"
                     >
-                      {/* Order Title Header */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-100 dark:border-zinc-900">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-black text-[#E8FF6B] bg-black px-2.5 py-1 rounded">
-                              #{order.id}
-                            </span>
-                            <span className="text-xs text-zinc-400">
-                              Placed on {new Date(order.createdAt).toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
+                       {/* Order Title Header */}
+                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-100 dark:border-zinc-900">
+                         <div>
+                           <div className="flex items-center gap-2 flex-wrap">
+                             <span className="text-sm font-black text-[#E8FF6B] bg-black px-2.5 py-1 rounded">
+                               #{order.id}
+                             </span>
+                             <span className="text-xs text-zinc-400">
+                               Placed on {new Date(order.createdAt).toLocaleString()}
+                             </span>
+                             {/* Distance Display */}
+                             {order.deliveryLocation && storeSettings.storeLat && storeSettings.storeLng && (
+                               (() => {
+                                 const zone = (storeSettings.deliveryZones || []).find(z => z.landmark === order.deliveryLocation);
+                                 if (zone && zone.lat && zone.lng && zone.fee !== -1) {
+                                   const distance = getDistanceFromLatLonInKm(storeSettings.storeLat, storeSettings.storeLng, zone.lat, zone.lng);
+                                   return (
+                                     <span className="text-[10px] font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded flex items-center gap-1">
+                                       📍 ~{distance} km from store
+                                     </span>
+                                   );
+                                 }
+                                 return null;
+                               })()
+                             )}
+                           </div>
+                         </div>
 
                         <div className="flex items-center gap-2">
                           {/* Status Badge */}
@@ -1816,6 +1838,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
           user?.role === "Super Admin" ? (
           <form onSubmit={handleSettingsSubmit} className="space-y-6 max-w-4xl">
             
+            {/* SECTION 0: STORE GEO-TAGGING */}
+            <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 rounded-sm p-6">
+              <h2 className="text-base font-black uppercase tracking-wider text-black dark:text-white mb-1 flex items-center gap-2">
+                <span className="w-2 h-2 bg-[#E8FF6B] rounded-full" />
+                STORE GEO-TAGGING (GPS)
+              </h2>
+              <p className="text-xs text-zinc-500 mb-5">Set your store's exact coordinates. The system will automatically calculate the distance from your store to every customer's delivery landmark.</p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-wider text-zinc-500 mb-1.5">Store Latitude</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    value={storeSettings.storeLat || 0}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, storeLat: Number(e.target.value) })}
+                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-sm focus:outline-none focus:border-[#E8FF6B]"
+                    placeholder="e.g. 7.3775"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-wider text-zinc-500 mb-1.5">Store Longitude</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    value={storeSettings.storeLng || 0}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, storeLng: Number(e.target.value) })}
+                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-sm focus:outline-none focus:border-[#E8FF6B]"
+                    placeholder="e.g. 3.9470"
+                  />
+                </div>
+              </div>
+              <p className="text-[10px] text-zinc-400 mt-2">Tip: You can find your exact coordinates on Google Maps by right-clicking your location.</p>
+            </div>
+
             {/* SECTION A: BRAND IDENTITY & LOGO */}
             <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 rounded-sm p-6">
               <h2 className="text-base font-black uppercase tracking-wider text-black dark:text-white mb-1 flex items-center gap-2">
@@ -2492,7 +2549,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
                   const newZone = {
                     id: `dz-${Date.now()}`,
                     landmark: "",
-                    fee: 0
+                    fee: 0,
+                    lat: 0,
+                    lng: 0
                   };
                   const updated = [...(storeSettings.deliveryZones || []), newZone];
                   const updatedSettings = dbService.updateSettings({ deliveryZones: updated });
