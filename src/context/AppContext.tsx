@@ -270,6 +270,41 @@ Address: ${orderData.address}
       } catch (emailError) {
         console.error("Web3Forms email notification failed (order still saved):", emailError);
       }
+
+      // ==========================================
+      // SEND CUSTOMER RECEIPT VIA EMAIL
+      // ==========================================
+      if (checkoutForm.email) {
+        try {
+          await fetch("https://api.web3forms.com/submit", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Accept": "application/json"
+            },
+            body: JSON.stringify({
+              access_key: WEB3FORMS_ACCESS_KEY,
+              subject: `Order Confirmation #${createdOrder.id} - Plain Culture`,
+              from_name: "Plain Culture",
+              to_email: checkoutForm.email, // Send directly to customer
+              // Customer info
+              customer_name: orderData.customerName,
+              order_id: createdOrder.id,
+              order_status: "Pending Payment Confirmation",
+              order_total: `₦${orderData.totalAmount.toLocaleString()}`,
+              order_date: new Date(createdOrder.createdAt).toLocaleString(),
+              // Items
+              order_items: itemsString,
+              // Message with WhatsApp link
+              message: `Hello ${orderData.customerName},\n\nThank you for shopping with Plain Culture! We have received your order.\n\nOrder ID: #${createdOrder.id}\nStatus: Pending Payment Confirmation\nTotal: ₦${orderData.totalAmount.toLocaleString()}\n\nItems:\n${itemsString}\n\nPlease click the link below to confirm your payment and complete your order via WhatsApp:\nhttps://wa.me/${shopPhone}?text=${encodedMessage}\n\nThank you for choosing Plain Culture.`,
+              botcheck: ""
+            })
+          });
+          console.log(`📧 Receipt sent to customer at ${checkoutForm.email}`);
+        } catch (customerEmailError) {
+          console.error("Web3Forms customer receipt failed:", customerEmailError);
+        }
+      }
       
       // Delay slightly for smooth transitions
       setTimeout(() => {
