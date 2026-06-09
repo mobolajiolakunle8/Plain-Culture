@@ -224,6 +224,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
     manifestoText2: storeSettings.manifestoText2,
     manifestoImageDesktop: storeSettings.manifestoImageDesktop || "/images/hero.jpg",
     manifestoImageMobile: storeSettings.manifestoImageMobile || "/images/hero.jpg",
+    dropInspirationTag: storeSettings.dropInspirationTag || "",
+    dropInspirationTitle: storeSettings.dropInspirationTitle || "",
+    dropInspirationText: storeSettings.dropInspirationText || "",
     footerBrandDescription: storeSettings.footerBrandDescription,
     dropPolicy: storeSettings.dropPolicy,
     returnPolicyTitle: storeSettings.returnPolicyTitle,
@@ -265,6 +268,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
       manifestoText2: storeSettings.manifestoText2,
       manifestoImageDesktop: storeSettings.manifestoImageDesktop || "/images/hero.jpg",
       manifestoImageMobile: storeSettings.manifestoImageMobile || "/images/hero.jpg",
+      dropInspirationTag: storeSettings.dropInspirationTag || "",
+      dropInspirationTitle: storeSettings.dropInspirationTitle || "",
+      dropInspirationText: storeSettings.dropInspirationText || "",
       footerBrandDescription: storeSettings.footerBrandDescription,
       dropPolicy: storeSettings.dropPolicy,
       returnPolicyTitle: storeSettings.returnPolicyTitle,
@@ -858,6 +864,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
       manifestoText2: settingsForm.manifestoText2,
       manifestoImageDesktop: settingsForm.manifestoImageDesktop,
       manifestoImageMobile: settingsForm.manifestoImageMobile,
+      dropInspirationTag: settingsForm.dropInspirationTag,
+      dropInspirationTitle: settingsForm.dropInspirationTitle,
+      dropInspirationText: settingsForm.dropInspirationText,
       footerBrandDescription: settingsForm.footerBrandDescription,
       dropPolicy: settingsForm.dropPolicy,
       returnPolicyTitle: settingsForm.returnPolicyTitle,
@@ -1852,10 +1861,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
                   <input
                     type="number"
                     step="0.0001"
-                    value={storeSettings.storeLat}
+                    value={settingsForm.storeLat}
                     onChange={(e) => setSettingsForm({ ...settingsForm, storeLat: Number(e.target.value) })}
                     className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-sm focus:outline-none focus:border-[#E8FF6B]"
-                    placeholder="e.g. 7.42062"
+                    placeholder="e.g. 7.3775"
                   />
                 </div>
                 <div>
@@ -1863,14 +1872,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
                   <input
                     type="number"
                     step="0.0001"
-                    value={storeSettings.storeLng}
+                    value={settingsForm.storeLng}
                     onChange={(e) => setSettingsForm({ ...settingsForm, storeLng: Number(e.target.value) })}
                     className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-sm focus:outline-none focus:border-[#E8FF6B]"
-                    placeholder="e.g. 3.88979"
+                    placeholder="e.g. 3.9470"
                   />
                 </div>
               </div>
-              <p className="text-[10px] text-zinc-400 mt-2">Tip: You can find your exact coordinates on Google Maps by right-clicking your location.</p>
+              <p className="text-[10px] text-zinc-400 mt-2">Tip: You can find your exact coordinates on Google Maps by right-clicking your location. Click the main Save button below to apply new distance calculations across orders.</p>
             </div>
 
             {/* SECTION A: BRAND IDENTITY & LOGO */}
@@ -2394,6 +2403,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
                     </div>
                   </div>
 
+                </div>
+
+                {/* Drop Inspiration Caption (overlay text on the manifesto image) */}
+                <div className="pt-4 mt-4 border-t border-zinc-100 dark:border-zinc-900 space-y-3">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-[#E8FF6B]">Drop Inspiration Caption (on image)</p>
+                  <div>
+                    <label className="block text-xs font-black uppercase tracking-wider text-zinc-500 mb-1.5">Tag (small label)</label>
+                    <input
+                      type="text"
+                      value={settingsForm.dropInspirationTag}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, dropInspirationTag: e.target.value })}
+                      placeholder="e.g. DROP INSPIRATION 01"
+                      className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-sm focus:outline-none focus:border-[#E8FF6B]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black uppercase tracking-wider text-zinc-500 mb-1.5">Title</label>
+                    <input
+                      type="text"
+                      value={settingsForm.dropInspirationTitle}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, dropInspirationTitle: e.target.value })}
+                      placeholder='e.g. "THE BENEATH STONE OF IBADAN"'
+                      className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-sm focus:outline-none focus:border-[#E8FF6B]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black uppercase tracking-wider text-zinc-500 mb-1.5">Description</label>
+                    <textarea
+                      rows={2}
+                      value={settingsForm.dropInspirationText}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, dropInspirationText: e.target.value })}
+                      placeholder="Short inspiration description..."
+                      className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-sm focus:outline-none focus:border-[#E8FF6B]"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
