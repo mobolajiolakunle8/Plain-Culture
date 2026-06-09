@@ -229,10 +229,10 @@ const StorefrontContent: React.FC = () => {
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
                   
                   <div className="absolute bottom-6 left-6 right-6 space-y-1.5">
-                    <span className="text-[10px] font-black tracking-widest text-[#E8FF6B] uppercase">DROP INSPIRATION 01</span>
-                    <h3 className="text-lg font-extrabold uppercase text-white">“THE BENEATH STONE OF IBADAN”</h3>
+                    <span className="text-[10px] font-black tracking-widest text-[#E8FF6B] uppercase">{settings.dropInspirationTag}</span>
+                    <h3 className="text-lg font-extrabold uppercase text-white">{settings.dropInspirationTitle}</h3>
                     <p className="text-xs text-zinc-400 font-light">
-                      Inspired by the rusty terracotta rooftops and strong architectural hills of Oke-Ado and Mapo Hall.
+                      {settings.dropInspirationText}
                     </p>
                   </div>
                 </div>
