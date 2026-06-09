@@ -1852,7 +1852,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
                   <input
                     type="number"
                     step="0.0001"
-                    value={storeSettings.storeLat || 0}
+                    value={storeSettings.storeLat}
                     onChange={(e) => setSettingsForm({ ...settingsForm, storeLat: Number(e.target.value) })}
                     className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-sm focus:outline-none focus:border-[#E8FF6B]"
                     placeholder="e.g. 7.3775"
@@ -1863,7 +1863,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
                   <input
                     type="number"
                     step="0.0001"
-                    value={storeSettings.storeLng || 0}
+                    value={storeSettings.storeLng}
                     onChange={(e) => setSettingsForm({ ...settingsForm, storeLng: Number(e.target.value) })}
                     className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-sm focus:outline-none focus:border-[#E8FF6B]"
                     placeholder="e.g. 3.9470"
