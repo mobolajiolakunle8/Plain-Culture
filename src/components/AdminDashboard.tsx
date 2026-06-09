@@ -1855,7 +1855,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
                     value={storeSettings.storeLat}
                     onChange={(e) => setSettingsForm({ ...settingsForm, storeLat: Number(e.target.value) })}
                     className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-sm focus:outline-none focus:border-[#E8FF6B]"
-                    placeholder="e.g. 7.3775"
+                    placeholder="e.g. 7.42062"
                   />
                 </div>
                 <div>
@@ -1866,7 +1866,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
                     value={storeSettings.storeLng}
                     onChange={(e) => setSettingsForm({ ...settingsForm, storeLng: Number(e.target.value) })}
                     className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-sm focus:outline-none focus:border-[#E8FF6B]"
-                    placeholder="e.g. 3.9470"
+                    placeholder="e.g. 3.88979"
                   />
                 </div>
               </div>
