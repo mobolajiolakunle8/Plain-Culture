@@ -307,8 +307,8 @@ const DEFAULT_SETTINGS = {
     { label: "Charcoal", value: "/images/tee_charcoal.jpg" },
     { label: "Olive", value: "/images/tee_olive.jpg" }
   ],
-  storeLat: 7.3775, // Default store location (Ibadan center)
-  storeLng: 3.9470,
+  storeLat: 7.42062, // Default store location (Ibadan center)
+  storeLng: 3.88979,
   deliveryZones: [
     { id: "dz-1",  landmark: "UI / University of Ibadan",      fee: 1000, lat: 7.4467, lng: 3.9006 },
     { id: "dz-2",  landmark: "Bodija Market",                   fee: 1000, lat: 7.4333, lng: 3.9000 },
