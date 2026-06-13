@@ -277,6 +277,10 @@ const DEFAULT_SETTINGS = {
   manifestoText2: "Plain Culture shirts are structured from 280GSM pure combed organic cotton. This provides an exquisite boxy drape, drops beautifully around the shoulders, provides breathable comfort in our warm tropical climate, and retains structural shape forever.",
   manifestoImageDesktop: "/images/hero.jpg",
   manifestoImageMobile: "/images/hero.jpg",
+  // DROP INSPIRATION (image caption overlay, editable from Admin)
+  dropInspirationTag: "DROP INSPIRATION 01",
+  dropInspirationTitle: "“THE BENEATH STONE OF IBADAN”",
+  dropInspirationText: "Inspired by the rusty terracotta rooftops and strong architectural hills of Oke-Ado and Mapo Hall.",
   // FOOTER SOCIAL HANDLES (fully editable from Admin)
   instagramHandle: "@plainculture.ng",
   twitterHandle: "@plainculture",
@@ -307,8 +311,10 @@ const DEFAULT_SETTINGS = {
     { label: "Charcoal", value: "/images/tee_charcoal.jpg" },
     { label: "Olive", value: "/images/tee_olive.jpg" }
   ],
-  storeLat: 7.42062, // Default store location (Ibadan center)
-  storeLng: 3.88979,
+  maintenanceMode: false, // When true, shows maintenance screen + WhatsApp button for non-admins
+  maintenanceWhatsApp: "+2348088171549", // WhatsApp number shown on maintenance page
+  storeLat: 7.3775, // Default store location (Ibadan center)
+  storeLng: 3.9470,
   deliveryZones: [
     { id: "dz-1",  landmark: "UI / University of Ibadan",      fee: 1000, lat: 7.4467, lng: 3.9006 },
     { id: "dz-2",  landmark: "Bodija Market",                   fee: 1000, lat: 7.4333, lng: 3.9000 },

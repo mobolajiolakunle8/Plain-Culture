@@ -157,7 +157,6 @@ export const PartnerDashboard: React.FC<PartnerDashboardProps> = ({ onNavigateTo
           <div className="flex flex-wrap gap-2">
             {[
               { id: "overview", label: "Financial Overview", icon: BarChart3 },
-              { id: "orders", label: "Orders", icon: ClipboardList },
               { id: "orders", label: "Orders", icon: ClipboardList }
             ].map((tab) => {
               const Icon = tab.icon;

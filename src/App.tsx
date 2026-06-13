@@ -10,6 +10,7 @@ import { AdminDashboard } from "./components/AdminDashboard";
 import { Footer } from "./components/Footer";
 import { ReturnPolicyPage } from "./components/ReturnPolicyPage";
 import { OrderTrackingPage } from "./components/OrderTrackingPage";
+import { MaintenancePage } from "./components/MaintenancePage";
 import { ToastContainer, ToastMessage } from "./components/Toast";
 import { InstallPrompt } from "./components/InstallPrompt";
 import { Sparkles, Cpu, RefreshCw, Layers, Compass } from "lucide-react";
@@ -17,8 +18,11 @@ import { Sparkles, Cpu, RefreshCw, Layers, Compass } from "lucide-react";
 // Inner core of the application to gain access to Cart state and contexts safely
 const StorefrontContent: React.FC = () => {
   const settings = useSettings();
-  // Navigation Routing
-  const [currentView, setCurrentView] = useState<"home" | "admin" | "return-policy" | "track-order">("home");
+  // Navigation Routing — detect ?admin=true in URL for secret admin access
+  const [currentView, setCurrentView] = useState<"home" | "admin" | "return-policy" | "track-order" | "maintenance">(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("admin") === "true" ? "admin" : "home";
+  });
 
   // Interactive UI state
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -69,8 +73,26 @@ const StorefrontContent: React.FC = () => {
         }}
       />
 
-      {/* RENDER VIEW: RETURN POLICY PAGE */}
-      {currentView === "return-policy" ? (
+      {/* MAINTENANCE MODE (global) — shown to non-admins when enabled */}
+      {settings.maintenanceMode && currentView !== "admin" ? (
+        <div className="flex-grow animate-fade-in">
+          <MaintenancePage 
+            onNavigateToHome={() => {
+              setCurrentView("home");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          />
+        </div>
+      ) : currentView === "maintenance" ? (
+        <div className="flex-grow animate-fade-in">
+          <MaintenancePage 
+            onNavigateToHome={() => {
+              setCurrentView("home");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          />
+        </div>
+      ) : currentView === "return-policy" ? (
         <div className="flex-grow animate-fade-in">
           <ReturnPolicyPage 
             onNavigateBack={() => {
@@ -264,10 +286,6 @@ const StorefrontContent: React.FC = () => {
 
       {/* Persistent global layout Footer */}
       <Footer 
-        onNavigateToAdmin={() => {
-          setCurrentView("admin");
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        }}
         onNavigateToReturnPolicy={() => {
           setCurrentView("return-policy");
           window.scrollTo({ top: 0, behavior: "smooth" });

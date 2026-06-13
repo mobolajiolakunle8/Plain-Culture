@@ -1,16 +1,15 @@
 import React from "react";
 import { useSettings } from "../context/AppContext";
-import { MessageSquare, Mail, MapPin, Sparkles, LogIn } from "lucide-react";
+import { MessageSquare, Mail, MapPin, Sparkles } from "lucide-react";
 
 interface FooterProps {
-  onNavigateToAdmin: () => void;
   onNavigateToReturnPolicy: () => void;
   onNavigateToTrackOrder: () => void;
 }
 
 
 
-export const Footer: React.FC<FooterProps> = ({ onNavigateToAdmin, onNavigateToReturnPolicy, onNavigateToTrackOrder }) => {
+export const Footer: React.FC<FooterProps> = ({ onNavigateToReturnPolicy, onNavigateToTrackOrder }) => {
   const s = useSettings();
   const rawPhone = s.phone.replace(/\+/g, "");
 
@@ -169,15 +168,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigateToAdmin, onNavigateToR
             <span>•</span>
             <span className="text-[#E8FF6B]">NIGERIA</span>
 
-            {/* Admin Login Icon - visible to all users */}
-            <button
-              onClick={onNavigateToAdmin}
-              className="ml-2 p-2 rounded-full bg-zinc-900 hover:bg-[#E8FF6B] hover:text-black text-zinc-500 transition-all cursor-pointer border border-zinc-800 hover:border-[#E8FF6B] group"
-              title="Admin Login"
-              aria-label="Admin Login"
-            >
-              <LogIn className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-            </button>
+
           </div>
         </div>
 

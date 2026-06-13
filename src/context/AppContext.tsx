@@ -10,6 +10,7 @@ import {
   isFirebaseConfigured 
 } from "../lib/firebase";
 import { signInWithEmailAndPassword, signOut as fbSignOut, onAuthStateChanged } from "firebase/auth";
+import { sanitizeText, sanitizePhone, sanitizeEmail, validateFieldLengths } from "../utils/sanitize";
 
 // ==========================================
 // SETTINGS HOOK (REAL-TIME SUBSCRIPTION)
@@ -85,7 +86,7 @@ interface CartContextType {
   cartTotal: number;
   cartCount: number;
   isCheckingOut: boolean;
-  submitCheckout: (checkoutForm: { name: string; phone: string; address: string; email?: string; deliveryFee?: number; deliveryLocation?: string }) => Promise<Order | null>;
+  submitCheckout: (checkoutForm: { name: string; phone: string; address: string; email?: string; deliveryFee?: number; deliveryLocation?: string; proofFile?: File | null }) => Promise<Order | null>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -191,19 +192,28 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      // 2. Submit order to DB service (triggers stock update and customer profile syncing)
+      // 2. Sanitize all user inputs before storing
+      const safeName = sanitizeText(checkoutForm.name);
+      const safePhone = sanitizePhone(checkoutForm.phone);
+      const safeAddress = sanitizeText(checkoutForm.address);
+      const safeEmail = sanitizeEmail(checkoutForm.email || "");
+      const safeDeliveryLocation = sanitizeText(checkoutForm.deliveryLocation || "");
       const deliveryFee = checkoutForm.deliveryFee || 0;
-      const deliveryLocation = checkoutForm.deliveryLocation || "";
       const grandTotal = cartTotal + deliveryFee;
 
+      // Validate field lengths to prevent abuse
+      if (!validateFieldLengths({ safeName, safePhone, safeAddress, safeEmail }, 500)) {
+        throw new Error("Input fields are too long. Please shorten your entries.");
+      }
+
       const orderData = {
-        customerName: checkoutForm.name,
-        phone: checkoutForm.phone,
-        address: checkoutForm.address,
+        customerName: safeName,
+        phone: safePhone,
+        address: safeAddress,
         items: cart,
         totalAmount: grandTotal,
         deliveryFee,
-        deliveryLocation
+        deliveryLocation: safeDeliveryLocation
       };
 
       const createdOrder = await dbService.addOrder(orderData);
@@ -219,10 +229,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .map((item) => `• ${item.name} (${item.size}) x ${item.qty}`)
         .join("\n");
 
-      const deliveryLine = deliveryLocation
+      const deliveryLine = safeDeliveryLocation
         ? deliveryFee > 0
-          ? `Delivery Location: ${deliveryLocation}\nDelivery Fee: ₦${deliveryFee.toLocaleString()}`
-          : `Delivery Location: ${deliveryLocation}\nDelivery Fee: To be quoted via WhatsApp`
+          ? `Delivery Location: ${safeDeliveryLocation}\nDelivery Fee: ₦${deliveryFee.toLocaleString()}`
+          : `Delivery Location: ${safeDeliveryLocation}\nDelivery Fee: To be quoted via WhatsApp`
         : "";
 
       const message = `Hello, I want to confirm my order:
@@ -262,7 +272,7 @@ Address: ${orderData.address}
             // Customer information
             customer_name: orderData.customerName,
             customer_phone: orderData.phone,
-            customer_email: checkoutForm.email || "Not provided",
+            customer_email: safeEmail || "Not provided",
             delivery_address: orderData.address,
             // Order details
             order_id: createdOrder.id,

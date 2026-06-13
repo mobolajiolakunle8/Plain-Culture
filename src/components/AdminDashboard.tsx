@@ -232,6 +232,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
     returnPolicyTitle: storeSettings.returnPolicyTitle,
     returnPolicyContent: storeSettings.returnPolicyContent,
     instagramHandle: storeSettings.instagramHandle,
+    maintenanceMode: storeSettings.maintenanceMode || false,
+    maintenanceWhatsApp: storeSettings.maintenanceWhatsApp || "+2348088171549",
     twitterHandle: storeSettings.twitterHandle,
     tiktokHandle: storeSettings.tiktokHandle,
     facebookHandle: storeSettings.facebookHandle || "",
@@ -276,6 +278,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
       returnPolicyTitle: storeSettings.returnPolicyTitle,
       returnPolicyContent: storeSettings.returnPolicyContent,
       instagramHandle: storeSettings.instagramHandle,
+      maintenanceMode: storeSettings.maintenanceMode || false,
+      maintenanceWhatsApp: storeSettings.maintenanceWhatsApp || "+2348088171549",
       twitterHandle: storeSettings.twitterHandle,
       tiktokHandle: storeSettings.tiktokHandle,
       facebookHandle: storeSettings.facebookHandle || "",
@@ -872,6 +876,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
       returnPolicyTitle: settingsForm.returnPolicyTitle,
       returnPolicyContent: settingsForm.returnPolicyContent,
       instagramHandle: settingsForm.instagramHandle,
+      maintenanceMode: settingsForm.maintenanceMode,
+      maintenanceWhatsApp: settingsForm.maintenanceWhatsApp,
       twitterHandle: settingsForm.twitterHandle,
       tiktokHandle: settingsForm.tiktokHandle,
       facebookHandle: settingsForm.facebookHandle,
@@ -1847,6 +1853,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
           user?.role === "Super Admin" ? (
           <form onSubmit={handleSettingsSubmit} className="space-y-6 max-w-4xl">
             
+            {/* SECTION 0: MAINTENANCE MODE */}
+            <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 rounded-sm p-6">
+              <h2 className="text-base font-black uppercase tracking-wider text-black dark:text-white mb-1 flex items-center gap-2">
+                <span className="w-2 h-2 bg-[#E8FF6B] rounded-full" />
+                MAINTENANCE MODE
+              </h2>
+              <p className="text-xs text-zinc-500 mb-5">When enabled, non-admin visitors see a maintenance screen with a WhatsApp button for manual orders.</p>
+
+              <div className="flex items-center justify-between bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-sm">
+                <div>
+                  <span className="block text-sm font-black text-black dark:text-white">Enable Maintenance Mode</span>
+                  <span className="text-xs text-zinc-500">Only Super Admins can still access the full dashboard.</span>
+                </div>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settingsForm.maintenanceMode}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, maintenanceMode: e.target.checked })}
+                    className="w-5 h-5 accent-[#E8FF6B]"
+                  />
+                  <span className="ml-3 text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                    {settingsForm.maintenanceMode ? "ACTIVE" : "DISABLED"}
+                  </span>
+                </label>
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-xs font-black uppercase tracking-wider text-zinc-500 mb-1.5">Maintenance WhatsApp Number</label>
+                <input
+                  type="text"
+                  value={settingsForm.maintenanceWhatsApp}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, maintenanceWhatsApp: e.target.value })}
+                  placeholder="+2348088171549"
+                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-sm focus:outline-none focus:border-[#E8FF6B]"
+                />
+                <p className="text-[10px] text-zinc-400 mt-1">This number will be shown on the maintenance page for customers to place manual orders.</p>
+              </div>
+            </div>
+
             {/* SECTION 0: STORE GEO-TAGGING */}
             <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 rounded-sm p-6">
               <h2 className="text-base font-black uppercase tracking-wider text-black dark:text-white mb-1 flex items-center gap-2">
