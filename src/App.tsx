@@ -13,6 +13,7 @@ import { OrderTrackingPage } from "./components/OrderTrackingPage";
 import { MaintenancePage } from "./components/MaintenancePage";
 import { ToastContainer, ToastMessage } from "./components/Toast";
 import { InstallPrompt } from "./components/InstallPrompt";
+import { AiAssistant } from "./components/AiAssistant";
 import { Sparkles, Cpu, RefreshCw, Layers, Compass } from "lucide-react";
 
 // Inner core of the application to gain access to Cart state and contexts safely
@@ -317,6 +318,9 @@ const StorefrontContent: React.FC = () => {
 
       {/* PWA Install Prompt */}
       <InstallPrompt />
+
+      {/* Nigerian AI Shopping Assistant */}
+      <AiAssistant />
 
     </div>
   );
