@@ -163,8 +163,29 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPreview, on
               ₦{product.price.toLocaleString()}
             </span>
             <span className={`text-[10px] font-black uppercase tracking-wider mt-1 ${isSoldOut ? "text-red-500" : "text-[#E8FF6B]"}`}>
-              {isSoldOut ? "0 pieces left" : `${product.stockQuantity} pieces left`}
+              {isSoldOut ? "Sold Out" : `${product.stockQuantity} pieces left`}
             </span>
+            {!isSoldOut && product.sizeStock && (
+              <div className="flex gap-1.5 mt-1.5">
+                {product.sizes.map((size) => {
+                  const qty = product.sizeStock[size] ?? 0;
+                  return (
+                    <span
+                      key={size}
+                      className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                        qty <= 0
+                          ? "bg-red-500/10 text-red-500 line-through"
+                          : qty <= 2
+                            ? "bg-amber-500/10 text-amber-500"
+                            : "bg-zinc-100 dark:bg-zinc-900 text-zinc-500"
+                      }`}
+                    >
+                      {size}:{qty}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {isSoldOut ? (

@@ -177,6 +177,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
     description: "",
     stockQuantity: 10,
     sizes: ["S", "M", "L", "XL"] as string[],
+    sizeStock: { "S": 3, "M": 3, "L": 2, "XL": 2 } as Record<string, number>,
     images: ["/images/tee_onyx.jpg"] as string[],
     isActive: true
   });
@@ -490,6 +491,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
       description: "",
       stockQuantity: 15,
       sizes: ["S", "M", "L", "XL"],
+      sizeStock: { "S": 4, "M": 4, "L": 4, "XL": 3 },
       images: ["/images/tee_onyx.jpg"],
       isActive: true
     });
@@ -504,6 +506,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
       description: product.description,
       stockQuantity: product.stockQuantity,
       sizes: [...product.sizes],
+      sizeStock: { ...(product.sizeStock || {}) },
       images: [...product.images],
       isActive: product.isActive
     });
@@ -542,7 +545,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
       const sizes = prev.sizes.includes(size)
         ? prev.sizes.filter((s) => s !== size)
         : [...prev.sizes, size];
-      return { ...prev, sizes };
+      // Sync sizeStock: add new size with 0, remove deleted size
+      const sizeStock = { ...prev.sizeStock };
+      if (!sizes.includes(size)) {
+        delete sizeStock[size];
+      } else if (!(size in sizeStock)) {
+        sizeStock[size] = 0;
+      }
+      const stockQuantity = Object.values(sizeStock).reduce((sum, v) => sum + Number(v), 0);
+      return { ...prev, sizes, sizeStock, stockQuantity };
     });
   };
 
@@ -3096,15 +3107,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold uppercase text-zinc-500 mb-1">Initial Stock Quantity *</label>
+                    <label className="block text-xs font-bold uppercase text-zinc-500 mb-1">
+                      Total Stock <span className="text-zinc-400 font-normal">(auto-calculated)</span>
+                    </label>
                     <input
                       type="number"
-                      required
-                      value={productForm.stockQuantity}
-                      onChange={(e) => setProductForm({ ...productForm, stockQuantity: Number(e.target.value) })}
-                      placeholder="15"
-                      className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-2.5 rounded text-sm focus:outline-none"
+                      disabled
+                      value={Object.values(productForm.sizeStock).reduce((sum, v) => sum + Number(v), 0)}
+                      className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-2.5 rounded text-sm opacity-60 cursor-not-allowed"
                     />
+                  </div>
+                </div>
+
+                {/* Per-size stock inputs */}
+                <div>
+                  <label className="block text-xs font-bold uppercase text-zinc-500 mb-2">Stock Per Size *</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {productForm.sizes.map((size) => (
+                      <div key={size} className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded p-3 text-center">
+                        <span className="block text-sm font-black text-black dark:text-white mb-1">{size}</span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={productForm.sizeStock[size] || 0}
+                          onChange={(e) => {
+                            const newSizeStock = { ...productForm.sizeStock, [size]: Math.max(0, Number(e.target.value)) };
+                            const newTotal = Object.values(newSizeStock).reduce((sum, v) => sum + Number(v), 0);
+                            setProductForm({ ...productForm, sizeStock: newSizeStock, stockQuantity: newTotal });
+                          }}
+                          className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-2 rounded text-sm text-center font-mono font-bold focus:outline-none focus:border-[#E8FF6B]"
+                        />
+                        <span className="text-[9px] text-zinc-400 uppercase mt-1 block">pieces</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
 

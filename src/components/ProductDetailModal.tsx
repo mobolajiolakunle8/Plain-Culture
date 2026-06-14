@@ -150,17 +150,26 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     const isSizeAvailable = product.sizes.includes(size);
                     if (!isSizeAvailable) return null;
 
+                    const sizeQty = product.sizeStock?.[size] ?? 0;
+                    const isSizeSoldOut = sizeQty <= 0;
+
                     return (
                       <button
                         key={size}
-                        onClick={() => !isSoldOut && setSelectedSize(size)}
-                        className={`w-12 h-12 flex items-center justify-center font-bold text-sm tracking-wide transition-all border cursor-pointer ${
-                          selectedSize === size
-                            ? "bg-black text-white dark:bg-white dark:text-black border-black dark:border-white scale-105"
-                            : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 hover:border-black dark:hover:border-zinc-400"
+                        onClick={() => !isSoldOut && !isSizeSoldOut && setSelectedSize(size)}
+                        disabled={isSizeSoldOut}
+                        className={`w-14 h-14 flex flex-col items-center justify-center font-bold text-sm tracking-wide transition-all border ${
+                          isSizeSoldOut
+                            ? "bg-zinc-200 dark:bg-zinc-900 border-zinc-300 dark:border-zinc-800 text-zinc-400 cursor-not-allowed line-through"
+                            : selectedSize === size
+                              ? "bg-black text-white dark:bg-white dark:text-black border-black dark:border-white scale-105 cursor-pointer"
+                              : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 hover:border-black dark:hover:border-zinc-400 cursor-pointer"
                         }`}
                       >
-                        {size}
+                        <span>{size}</span>
+                        <span className={`text-[8px] font-bold ${isSizeSoldOut ? "text-red-400" : "text-[#E8FF6B]"}`}>
+                          {isSizeSoldOut ? "OUT" : `${sizeQty}`}
+                        </span>
                       </button>
                     );
                   })}

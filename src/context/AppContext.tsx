@@ -103,22 +103,23 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [cart]);
 
   const addToCart = (product: Product, size: string) => {
-    // 1. Check stock availability
-    if (product.stockQuantity <= 0) {
-      alert("This product is currently Sold Out.");
+    // 1. Check per-size stock availability
+    const sizeStock = product.sizeStock?.[size] ?? 0;
+    if (sizeStock <= 0) {
+      alert(`Size ${size} is currently Sold Out.`);
       return;
     }
 
     setCart((prev) => {
       const existingIndex = prev.findIndex((item) => item.id === product.id && item.size === size);
       
-      // Calculate total quantity of this product currently in cart
-      const currentQtyInCart = prev
-        .filter((item) => item.id === product.id)
+      // Calculate quantity of THIS SIZE currently in cart
+      const currentSizeQtyInCart = prev
+        .filter((item) => item.id === product.id && item.size === size)
         .reduce((sum, item) => sum + item.qty, 0);
 
-      if (currentQtyInCart >= product.stockQuantity) {
-        alert(`Sorry, you cannot add more than ${product.stockQuantity} items (available stock limit).`);
+      if (currentSizeQtyInCart >= sizeStock) {
+        alert(`Sorry, only ${sizeStock} unit(s) of Size ${size} available.`);
         return prev;
       }
 

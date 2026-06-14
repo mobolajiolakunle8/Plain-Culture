@@ -79,7 +79,8 @@ export interface Product {
   description: string;
   images: string[];
   sizes: string[]; // ['S', 'M', 'L', 'XL']
-  stockQuantity: number;
+  stockQuantity: number; // Legacy total — kept for backward compatibility
+  sizeStock: Record<string, number>; // Per-size stock e.g. { "S": 3, "M": 5, "L": 0, "XL": 2 }
   isActive: boolean;
   createdAt: string; // ISO string
 }
@@ -149,8 +150,9 @@ const DEFAULT_PRODUCTS: Product[] = [
     images: ["/images/tee_onyx.jpg"],
     sizes: ["S", "M", "L", "XL"],
     stockQuantity: 12,
+    sizeStock: { "S": 3, "M": 4, "L": 3, "XL": 2 },
     isActive: true,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString() // 5 days ago
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString()
   },
   {
     id: "prod-sand",
@@ -160,8 +162,9 @@ const DEFAULT_PRODUCTS: Product[] = [
     images: ["/images/tee_sand.jpg"],
     sizes: ["S", "M", "L", "XL"],
     stockQuantity: 8,
+    sizeStock: { "S": 2, "M": 3, "L": 2, "XL": 1 },
     isActive: true,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4).toISOString() // 4 days ago
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4).toISOString()
   },
   {
     id: "prod-charcoal",
@@ -171,8 +174,9 @@ const DEFAULT_PRODUCTS: Product[] = [
     images: ["/images/tee_charcoal.jpg"],
     sizes: ["S", "M", "L", "XL"],
     stockQuantity: 5,
+    sizeStock: { "S": 1, "M": 2, "L": 1, "XL": 1 },
     isActive: true,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString() // 3 days ago
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString()
   },
   {
     id: "prod-olive",
@@ -181,9 +185,10 @@ const DEFAULT_PRODUCTS: Product[] = [
     description: "Artisanal deep forest green tee reflecting the rich natural soils and tropical canopy of Ibadan. Highly breathable 240GSM cotton tailored with double-needle hems for maximum longevity.",
     images: ["/images/tee_olive.jpg"],
     sizes: ["S", "M", "L"],
-    stockQuantity: 0, // This one is Sold Out! Perfect for testing stock handling
+    stockQuantity: 0,
+    sizeStock: { "S": 0, "M": 0, "L": 0 },
     isActive: true,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString() // 2 days ago
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString()
   }
 ];
 
@@ -634,29 +639,38 @@ export const dbService = {
       }
     }
 
-    // 2. Decrement stock for purchased products
+    // 2. Decrement stock for purchased products (per-size)
     for (const item of newOrder.items) {
       const currentProducts = mockDb.getData("products");
       const prodIndex = currentProducts.findIndex((p) => p.id === item.id);
       if (prodIndex !== -1) {
-        const currentStock = currentProducts[prodIndex].stockQuantity;
-        const newStock = Math.max(0, currentStock - item.qty);
-        currentProducts[prodIndex].stockQuantity = newStock;
+        const product = currentProducts[prodIndex];
+
+        // Decrement per-size stock
+        const sizeStock = { ...(product.sizeStock || {}) };
+        const currentSizeStock = sizeStock[item.size] || 0;
+        sizeStock[item.size] = Math.max(0, currentSizeStock - item.qty);
+
+        // Recalculate total stock from all sizes
+        const newTotalStock = Object.values(sizeStock).reduce((sum: number, v: any) => sum + Number(v), 0);
+
+        currentProducts[prodIndex].sizeStock = sizeStock;
+        currentProducts[prodIndex].stockQuantity = newTotalStock;
         mockDb.saveData("products", currentProducts);
 
         // Notify admin dashboard when a product hits the critical 2-piece threshold.
-        if (newStock === 2) {
+        if (newTotalStock === 2) {
           dbService.logActivity(
             "system@plainculture.ng",
             "Inventory Alert",
-            `LOW STOCK ALERT: "${currentProducts[prodIndex].name}" has only 2 pieces remaining after Order #${newOrder.id}.`
+            `LOW STOCK ALERT: "${product.name}" has only 2 pieces remaining after Order #${newOrder.id}.`
           ).catch((e) => console.error("Low stock activity log error:", e));
 
           window.dispatchEvent(new CustomEvent("pc_low_stock_alert", {
             detail: {
               productId: item.id,
-              productName: currentProducts[prodIndex].name,
-              stockQuantity: newStock,
+              productName: product.name,
+              stockQuantity: newTotalStock,
               orderId: newOrder.id
             }
           }));
@@ -664,7 +678,7 @@ export const dbService = {
 
         // Update firebase stock asynchronously
         if (isFirebaseConfigured && db) {
-          updateDoc(doc(db, "products", item.id), { stockQuantity: newStock })
+          updateDoc(doc(db, "products", item.id), { stockQuantity: newTotalStock, sizeStock })
             .then(() => console.log("Firebase stock updated!"))
             .catch((e) => console.error("Firebase stock update error:", e));
         }
