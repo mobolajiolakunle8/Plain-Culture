@@ -86,7 +86,7 @@ interface CartContextType {
   cartTotal: number;
   cartCount: number;
   isCheckingOut: boolean;
-  submitCheckout: (checkoutForm: { name: string; phone: string; address: string; email?: string; deliveryFee?: number; deliveryLocation?: string; proofFile?: File | null }) => Promise<Order | null>;
+  submitCheckout: (checkoutForm: { name: string; phone: string; address: string; email?: string; deliveryFee?: number; deliveryLocation?: string; proofFile?: File | null; branding?: { type: "embroidery" | "dtf"; placement: "chestLogo" | "fullFront" | "backName"; price: number; customText?: string } }) => Promise<Order | null>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -176,7 +176,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const cartTotal = cart.reduce((total, item) => total + item.price * item.qty, 0);
   const cartCount = cart.reduce((count, item) => count + item.qty, 0);
 
-  const submitCheckout = async (checkoutForm: { name: string; phone: string; address: string; email?: string; deliveryFee?: number; deliveryLocation?: string }) => {
+  const submitCheckout = async (checkoutForm: { name: string; phone: string; address: string; email?: string; deliveryFee?: number; deliveryLocation?: string; branding?: { type: "embroidery" | "dtf"; placement: "chestLogo" | "fullFront" | "backName"; price: number; customText?: string } }) => {
     if (cart.length === 0) return null;
     setIsCheckingOut(true);
 
@@ -212,9 +212,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         phone: safePhone,
         address: safeAddress,
         items: cart,
-        totalAmount: grandTotal,
+        totalAmount: grandTotal + (checkoutForm.branding?.price || 0),
         deliveryFee,
-        deliveryLocation: safeDeliveryLocation
+        deliveryLocation: safeDeliveryLocation,
+        branding: checkoutForm.branding
       };
 
       const createdOrder = await dbService.addOrder(orderData);

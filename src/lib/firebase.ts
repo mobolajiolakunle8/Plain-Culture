@@ -94,6 +94,13 @@ export interface OrderItem {
   image: string;
 }
 
+export interface BrandingOption {
+  type: "embroidery" | "dtf";
+  placement: "chestLogo" | "fullFront" | "backName";
+  price: number;
+  customText?: string; // For back name customization
+}
+
 export interface Order {
   id: string;
   customerName: string;
@@ -103,6 +110,7 @@ export interface Order {
   totalAmount: number;
   deliveryFee?: number;
   deliveryLocation?: string;
+  branding?: BrandingOption; // Custom branding option
   status: "Pending" | "Confirmed" | "Delivered";
   createdAt: string; // ISO string
 }
@@ -318,6 +326,19 @@ const DEFAULT_SETTINGS = {
   ],
   maintenanceMode: false, // When true, shows maintenance screen + WhatsApp button for non-admins
   maintenanceWhatsApp: "+2348088171549", // WhatsApp number shown on maintenance page
+  brandingEnabled: true, // Enable/disable branding feature
+  brandingPrices: { // Admin-managed branding prices
+    embroidery: {
+      chestLogo: 2000,
+      fullFront: 5000,
+      backName: 1500
+    },
+    dtf: {
+      chestLogo: 1500,
+      fullFront: 4000,
+      backName: 1200
+    }
+  },
   storeLat: 7.3775, // Default store location (Ibadan center)
   storeLng: 3.9470,
   deliveryZones: [
