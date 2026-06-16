@@ -783,9 +783,9 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
                     <div className="pt-3 border-t border-zinc-800">
                       <label className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mb-1 block">Amount To Transfer</label>
                       <div className="bg-[#E8FF6B] text-black p-3 rounded-sm flex items-center justify-between">
-                        <span className="text-xl font-black tracking-tight">₦{cartTotal.toLocaleString()}</span>
+                        <span className="text-xl font-black tracking-tight">₦{(cartTotal + (isOutsideIbadan ? 0 : formData.deliveryFee) + (formData.brandingEnabled ? brandingTotal : 0)).toLocaleString()}</span>
                         <button
-                          onClick={() => handleCopy(cartTotal.toString(), "Amount")}
+                          onClick={() => handleCopy((cartTotal + (isOutsideIbadan ? 0 : formData.deliveryFee) + (formData.brandingEnabled ? brandingTotal : 0)).toString(), "Amount")}
                           className="p-1 hover:bg-black/10 rounded cursor-pointer"
                         >
                           {copiedField === "Amount" ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
