@@ -110,20 +110,31 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
     address: "",
     email: "",
     deliveryZoneId: "",
-    deliveryFee: 0
+    deliveryFee: 0,
+    brandingEnabled: false,
+    brandingType: "" as "Embroidery" | "DTF" | "",
+    brandingAreas: [] as string[],
+    brandingDesignText: ""
   });
 
   const [emailValidating, setEmailValidating] = useState(false);
   const [emailValid, setEmailValid] = useState<boolean | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  
-  // Branding state
-  const [enableBranding, setEnableBranding] = useState(false);
-  const [brandingType, setBrandingType] = useState<"embroidery" | "dtf">("embroidery");
-  const [brandingPlacement, setBrandingPlacement] = useState<"chestLogo" | "fullFront" | "backName">("chestLogo");
-  const [customText, setCustomText] = useState("");
 
   const deliveryZones = settings.deliveryZones || [];
+  const brandingConfig = settings.brandingConfig || { enabled: true, embroidery: { chestLogo: 500, fullFront: 800, backName: 500 }, dtf: { chestLogo: 300, fullFront: 500, backName: 300 } };
+
+  // Compute branding total based on type + selected areas
+  const brandingTotal = (() => {
+    if (!formData.brandingEnabled || !formData.brandingType) return 0;
+    const pricing = formData.brandingType === "Embroidery" ? brandingConfig.embroidery : brandingConfig.dtf;
+    return formData.brandingAreas.reduce((sum, area) => {
+      if (area === "Chest Logo") return sum + Number(pricing.chestLogo || 0);
+      if (area === "Full Front") return sum + Number(pricing.fullFront || 0);
+      if (area === "Back Name") return sum + Number(pricing.backName || 0);
+      return sum;
+    }, 0);
+  })();
   const selectedZone = deliveryZones.find(z => z.id === formData.deliveryZoneId);
   const isOutsideIbadan = selectedZone?.fee === -1;
 
@@ -240,8 +251,15 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
     const fullPhone = `${formData.countryCode}${formData.phone}`;
     const locationLabel = selectedZone?.landmark || "";
 
-    // Calculate branding price
-    const brandingPrice = enableBranding ? (settings.brandingPrices?.[brandingType]?.[brandingPlacement] || 0) : 0;
+    const brandingDetails = formData.brandingEnabled && formData.brandingType && formData.brandingAreas.length > 0
+      ? {
+          enabled: true,
+          type: formData.brandingType,
+          areas: formData.brandingAreas,
+          designText: formData.brandingDesignText,
+          price: brandingTotal
+        }
+      : undefined;
 
     const createdOrder = await submitCheckout({
       name: formData.name,
@@ -250,23 +268,14 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
       email: formData.email,
       deliveryFee: isOutsideIbadan ? 0 : formData.deliveryFee,
       deliveryLocation: locationLabel,
-      branding: enableBranding ? {
-        type: brandingType,
-        placement: brandingPlacement,
-        price: brandingPrice,
-        customText: brandingPlacement === "backName" ? customText : undefined
-      } : undefined
+      brandingDetails
     });
 
     if (createdOrder) {
       onAddToast(`Order #${createdOrder.id} received! Redirecting to WhatsApp for confirmation...`, "success");
       
       // Reset form and close
-      setFormData({ countryCode: "+234", phone: "", name: "", address: "", email: "", deliveryZoneId: "", deliveryFee: 0 });
-      setEnableBranding(false);
-      setBrandingType("embroidery");
-      setBrandingPlacement("chestLogo");
-      setCustomText("");
+      setFormData({ countryCode: "+234", phone: "", name: "", address: "", email: "", deliveryZoneId: "", deliveryFee: 0, brandingEnabled: false, brandingType: "", brandingAreas: [], brandingDesignText: "" });
       setCheckoutStep("cart");
       onClose();
     }
@@ -552,6 +561,111 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
                   )}
                 </div>
 
+                {/* BRANDING SECTION */}
+                {brandingConfig.enabled && (
+                  <div className="pt-4 border-t border-zinc-200 dark:border-zinc-900">
+                    <label className="flex items-start gap-3 cursor-pointer bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-sm">
+                      <input
+                        type="checkbox"
+                        checked={formData.brandingEnabled}
+                        onChange={(e) => {
+                          setFormData(prev => ({
+                            ...prev,
+                            brandingEnabled: e.target.checked,
+                            brandingType: e.target.checked ? prev.brandingType : "",
+                            brandingAreas: e.target.checked ? prev.brandingAreas : [],
+                            brandingDesignText: ""
+                          }));
+                        }}
+                        className="w-4 h-4 mt-0.5 accent-[#E8FF6B] cursor-pointer"
+                      />
+                      <div>
+                        <span className="block text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Add Custom Branding to My Order</span>
+                        <span className="text-[10px] text-zinc-400 mt-0.5 block">Personalize with embroidery or DTF printing</span>
+                      </div>
+                    </label>
+
+                    {formData.brandingEnabled && (
+                      <div className="mt-3 space-y-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-sm">
+                        {/* Branding Type */}
+                        <div>
+                          <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-500 mb-1.5">Branding Type</label>
+                          <div className="grid grid-cols-2 gap-2">
+                            {(["Embroidery", "DTF"] as const).map((type) => (
+                              <label key={type} className="flex items-center gap-2 cursor-pointer bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-2.5 rounded-sm">
+                                <input
+                                  type="radio"
+                                  name="brandingType"
+                                  checked={formData.brandingType === type}
+                                  onChange={() => setFormData(prev => ({
+                                    ...prev,
+                                    brandingType: type,
+                                    brandingAreas: [] // reset areas when type changes
+                                  }))}
+                                  className="w-4 h-4 accent-[#E8FF6B]"
+                                />
+                                <span className="text-xs font-bold text-black dark:text-white">{type}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Areas */}
+                        {formData.brandingType && (
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-500 mb-1.5">Select Areas to Brand</label>
+                            <div className="space-y-2">
+                              {["Chest Logo", "Full Front", "Back Name"].map((area) => (
+                                <label key={area} className="flex items-center gap-2 cursor-pointer bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-2.5 rounded-sm">
+                                  <input
+                                    type="checkbox"
+                                    checked={formData.brandingAreas.includes(area)}
+                                    onChange={(e) => {
+                                      setFormData(prev => ({
+                                        ...prev,
+                                        brandingAreas: e.target.checked
+                                          ? [...prev.brandingAreas, area]
+                                          : prev.brandingAreas.filter(a => a !== area)
+                                      }));
+                                    }}
+                                    className="w-4 h-4 accent-[#E8FF6B]"
+                                  />
+                                  <span className="text-xs font-bold text-black dark:text-white">{area}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Design Text */}
+                        {formData.brandingType && formData.brandingAreas.length > 0 && (
+                          <div>
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-500 mb-1.5">Describe Your Design</label>
+                            <textarea
+                              rows={2}
+                              value={formData.brandingDesignText}
+                              onChange={(e) => setFormData(prev => ({ ...prev, brandingDesignText: e.target.value }))}
+                              placeholder="e.g. Text 'PC' in bold, or describe a popular logo/identity you want..."
+                              className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-2.5 text-xs focus:outline-none focus:border-[#E8FF6B] text-black dark:text-white"
+                            />
+                            <p className="text-[9px] text-amber-500 mt-1.5 flex items-start gap-1">
+                              ⚠️ After checkout, please send your actual design/logo file to our WhatsApp immediately so we can start your branding.
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Live Branding Total */}
+                        {brandingTotal > 0 && (
+                          <div className="bg-[#E8FF6B]/10 border border-[#E8FF6B]/30 p-2.5 rounded-sm flex justify-between items-center">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-[#E8FF6B]">Branding Fee</span>
+                            <span className="text-sm font-black text-black dark:text-white">₦{brandingTotal.toLocaleString()}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-1.5 flex items-center gap-2">
                     <Mail className="w-3.5 h-3.5" />
@@ -600,121 +714,6 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
                     {!emailValid && !emailValidating && "We'll send order confirmation and tracking updates here."}
                   </p>
                 </div>
-
-                {/* BRANDING OPTIONS */}
-                {settings.brandingEnabled && (
-                  <div className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-sm p-4 space-y-4">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="enableBranding"
-                        checked={enableBranding}
-                        onChange={(e) => setEnableBranding(e.target.checked)}
-                        className="w-4 h-4 accent-[#E8FF6B]"
-                      />
-                      <label htmlFor="enableBranding" className="text-sm font-black uppercase tracking-wider text-black dark:text-white cursor-pointer">
-                        Add Custom Branding
-                      </label>
-                    </div>
-
-                    {enableBranding && (
-                      <>
-                        {/* Branding Type */}
-                        <div>
-                          <label className="block text-xs font-bold uppercase text-zinc-500 mb-2">Branding Type</label>
-                          <div className="grid grid-cols-2 gap-3">
-                            <button
-                              type="button"
-                              onClick={() => setBrandingType("embroidery")}
-                              className={`p-3 rounded-sm border text-center transition-all ${
-                                brandingType === "embroidery"
-                                  ? "bg-[#E8FF6B] border-[#E8FF6B] text-black"
-                                  : "bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400"
-                              }`}
-                            >
-                              <div className="text-sm font-bold">Embroidery</div>
-                              <div className="text-[10px] mt-1">
-                                ₦{settings.brandingPrices?.embroidery?.chestLogo?.toLocaleString() || 2000}+
-                              </div>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setBrandingType("dtf")}
-                              className={`p-3 rounded-sm border text-center transition-all ${
-                                brandingType === "dtf"
-                                  ? "bg-[#E8FF6B] border-[#E8FF6B] text-black"
-                                  : "bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400"
-                              }`}
-                            >
-                              <div className="text-sm font-bold">DTF Print</div>
-                              <div className="text-[10px] mt-1">
-                                ₦{settings.brandingPrices?.dtf?.chestLogo?.toLocaleString() || 1500}+
-                              </div>
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Placement Options */}
-                        <div>
-                          <label className="block text-xs font-bold uppercase text-zinc-500 mb-2">Placement</label>
-                          <div className="space-y-2">
-                            {[
-                              { id: "chestLogo", label: "Chest Logo", priceKey: "chestLogo" },
-                              { id: "fullFront", label: "Full Front", priceKey: "fullFront" },
-                              { id: "backName", label: "Back Name", priceKey: "backName" }
-                            ].map((option) => {
-                              const prices = settings.brandingPrices?.[brandingType] || {};
-                              const price = prices[option.priceKey as keyof typeof prices] || 0;
-                              return (
-                                <button
-                                  key={option.id}
-                                  type="button"
-                                  onClick={() => setBrandingPlacement(option.id as any)}
-                                  className={`w-full p-3 rounded-sm border text-left flex items-center justify-between transition-all ${
-                                    brandingPlacement === option.id
-                                      ? "bg-[#E8FF6B] border-[#E8FF6B] text-black"
-                                      : "bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400"
-                                  }`}
-                                >
-                                  <span className="text-sm font-bold">{option.label}</span>
-                                  <span className="text-xs font-bold">₦{price.toLocaleString()}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        {/* Custom Text for Back Name */}
-                        {brandingPlacement === "backName" && (
-                          <div>
-                            <label className="block text-xs font-bold uppercase text-zinc-500 mb-1.5">
-                              Custom Text (Optional)
-                            </label>
-                            <input
-                              type="text"
-                              value={customText}
-                              onChange={(e) => setCustomText(e.target.value)}
-                              placeholder="Enter name or text (max 20 characters)"
-                              maxLength={20}
-                              className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3 text-sm focus:outline-none focus:border-[#E8FF6B]"
-                            />
-                            <p className="text-[10px] text-zinc-400 mt-1">Leave empty for no text</p>
-                          </div>
-                        )}
-
-                        {/* Branding Price Summary */}
-                        <div className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-sm p-3">
-                          <div className="flex justify-between text-xs">
-                            <span className="text-zinc-500">Branding ({brandingType === "embroidery" ? "Embroidery" : "DTF"} - {brandingPlacement === "chestLogo" ? "Chest Logo" : brandingPlacement === "fullFront" ? "Full Front" : "Back Name"})</span>
-                            <span className="font-bold">
-                              ₦{(settings.brandingPrices?.[brandingType]?.[brandingPlacement] || 0).toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
               </form>
             ) : (
               // STEP 3: PAYMENT METHOD
@@ -827,33 +826,18 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
                         : <span>₦{formData.deliveryFee.toLocaleString()}</span>
                   }
                 </div>
-                <div className="space-y-1 mb-4">
+                {formData.brandingEnabled && brandingTotal > 0 && (
                   <div className="flex justify-between text-xs text-zinc-500">
-                    <span>Subtotal</span>
-                    <span>₦{cartTotal.toLocaleString()}</span>
+                    <span>Branding ({formData.brandingType})</span>
+                    <span className="text-[#E8FF6B] font-semibold">₦{brandingTotal.toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between text-xs text-zinc-500">
-                    <span>Delivery Fee</span>
-                    {!selectedZone
-                      ? <span className="text-zinc-400">Select location</span>
-                      : isOutsideIbadan
-                        ? <span className="text-amber-500 font-semibold">Via WhatsApp</span>
-                        : <span>₦{formData.deliveryFee.toLocaleString()}</span>
-                    }
-                  </div>
-                  {enableBranding && (
-                    <div className="flex justify-between text-xs text-zinc-500">
-                      <span>Branding ({brandingType === "embroidery" ? "Embroidery" : "DTF"})</span>
-                      <span>₦{(settings.brandingPrices?.[brandingType]?.[brandingPlacement] || 0).toLocaleString()}</span>
-                    </div>
-                  )}
-                </div>
+                )}
                 <div className="flex justify-between items-center pt-2 border-t border-zinc-200 dark:border-zinc-900">
                   <span className="text-sm font-bold uppercase tracking-wider text-zinc-900 dark:text-zinc-100">
                     TOTAL AMOUNT
                   </span>
                   <span className="text-lg font-black text-black dark:text-white">
-                    ₦{(cartTotal + (isOutsideIbadan ? 0 : formData.deliveryFee) + (enableBranding ? (settings.brandingPrices?.[brandingType]?.[brandingPlacement] || 0) : 0)).toLocaleString()}
+                    ₦{(cartTotal + (isOutsideIbadan ? 0 : formData.deliveryFee) + brandingTotal).toLocaleString()}
                     {isOutsideIbadan && <span className="text-xs font-normal text-amber-500 block text-right">+ delivery TBD</span>}
                   </span>
                 </div>

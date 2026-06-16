@@ -235,14 +235,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
     instagramHandle: storeSettings.instagramHandle,
     maintenanceMode: storeSettings.maintenanceMode || false,
     maintenanceWhatsApp: storeSettings.maintenanceWhatsApp || "+2348088171549",
-    brandingEnabled: storeSettings.brandingEnabled || true,
-    brandingPrices: storeSettings.brandingPrices || {
-      embroidery: { chestLogo: 2000, fullFront: 5000, backName: 1500 },
-      dtf: { chestLogo: 1500, fullFront: 4000, backName: 1200 }
-    },
     twitterHandle: storeSettings.twitterHandle,
     tiktokHandle: storeSettings.tiktokHandle,
     facebookHandle: storeSettings.facebookHandle || "",
+    brandingConfig: storeSettings.brandingConfig || { enabled: true, embroidery: { chestLogo: 500, fullFront: 800, backName: 500 }, dtf: { chestLogo: 300, fullFront: 500, backName: 300 } },
     paymentBankName: storeSettings.payment.bankName,
     paymentAccountNumber: storeSettings.payment.accountNumber,
     paymentAccountName: storeSettings.payment.accountName
@@ -286,14 +282,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
       instagramHandle: storeSettings.instagramHandle,
       maintenanceMode: storeSettings.maintenanceMode || false,
       maintenanceWhatsApp: storeSettings.maintenanceWhatsApp || "+2348088171549",
-      brandingEnabled: storeSettings.brandingEnabled || true,
-      brandingPrices: storeSettings.brandingPrices || {
-        embroidery: { chestLogo: 2000, fullFront: 5000, backName: 1500 },
-        dtf: { chestLogo: 1500, fullFront: 4000, backName: 1200 }
-      },
       twitterHandle: storeSettings.twitterHandle,
       tiktokHandle: storeSettings.tiktokHandle,
       facebookHandle: storeSettings.facebookHandle || "",
+      brandingConfig: storeSettings.brandingConfig || { enabled: true, embroidery: { chestLogo: 500, fullFront: 800, backName: 500 }, dtf: { chestLogo: 300, fullFront: 500, backName: 300 } },
       paymentBankName: storeSettings.payment.bankName,
       paymentAccountNumber: storeSettings.payment.accountNumber,
       paymentAccountName: storeSettings.payment.accountName
@@ -902,6 +894,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
       twitterHandle: settingsForm.twitterHandle,
       tiktokHandle: settingsForm.tiktokHandle,
       facebookHandle: settingsForm.facebookHandle,
+      brandingConfig: settingsForm.brandingConfig,
       payment: {
         bankName: settingsForm.paymentBankName,
         accountNumber: settingsForm.paymentAccountNumber,
@@ -1685,6 +1678,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
                             ))}
                           </div>
 
+                          {/* Branding details */}
+                          {order.brandingDetails && order.brandingDetails.enabled && (
+                            <div className="bg-[#E8FF6B]/10 border border-[#E8FF6B]/30 p-3 rounded-sm space-y-1.5">
+                              <div className="text-[10px] font-black uppercase tracking-wider text-[#E8FF6B]">🎨 CUSTOM BRANDING</div>
+                              <div className="text-xs text-black dark:text-white">
+                                <strong>Type:</strong> {order.brandingDetails.type}
+                              </div>
+                              <div className="text-xs text-black dark:text-white">
+                                <strong>Areas:</strong> {order.brandingDetails.areas.join(", ")}
+                              </div>
+                              {order.brandingDetails.designText && (
+                                <div className="text-xs text-black dark:text-white">
+                                  <strong>Design:</strong> "{order.brandingDetails.designText}"
+                                </div>
+                              )}
+                              <div className="text-xs font-bold text-emerald-600 pt-1 border-t border-[#E8FF6B]/20">
+                                Branding Fee: ₦{(order.brandingDetails.price || 0).toLocaleString()}
+                              </div>
+                            </div>
+                          )}
+
                           <div className="flex justify-between items-center pt-2 font-bold">
                             <span>TOTAL AMOUNT Due:</span>
                             <span className="text-base text-emerald-500 font-extrabold">
@@ -1913,131 +1927,92 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
               </div>
             </div>
 
-            {/* SECTION: BRANDING PRICES */}
+            {/* BRANDING CONFIG */}
             <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 rounded-sm p-6">
               <h2 className="text-base font-black uppercase tracking-wider text-black dark:text-white mb-1 flex items-center gap-2">
                 <span className="w-2 h-2 bg-[#E8FF6B] rounded-full" />
-                BRANDING PRICES
+                BRANDING OPTIONS (Embroidery / DTF)
               </h2>
-              <p className="text-xs text-zinc-500 mb-5">Set prices for custom branding options. These will be added to customer orders at checkout.</p>
+              <p className="text-xs text-zinc-500 mb-5">Enable custom branding for customers at checkout. Customers pick a type, choose branding areas, and the total is auto-calculated from the prices below.</p>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Embroidery */}
-                <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-sm p-4">
-                  <h3 className="text-sm font-black uppercase tracking-wider text-black dark:text-white mb-4">Embroidery</h3>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs font-bold text-zinc-500 mb-1">Chest Logo</label>
-                      <input
-                        type="number"
-                        value={settingsForm.brandingPrices?.embroidery?.chestLogo || 2000}
-                        onChange={(e) => setSettingsForm({ 
-                          ...settingsForm, 
-                          brandingPrices: { 
-                            ...settingsForm.brandingPrices,
-                            embroidery: { ...settingsForm.brandingPrices?.embroidery, chestLogo: Number(e.target.value) }
-                          }
-                        })}
-                        className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-2.5 text-sm focus:outline-none focus:border-[#E8FF6B]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-zinc-500 mb-1">Full Front</label>
-                      <input
-                        type="number"
-                        value={settingsForm.brandingPrices?.embroidery?.fullFront || 5000}
-                        onChange={(e) => setSettingsForm({ 
-                          ...settingsForm, 
-                          brandingPrices: { 
-                            ...settingsForm.brandingPrices,
-                            embroidery: { ...settingsForm.brandingPrices?.embroidery, fullFront: Number(e.target.value) }
-                          }
-                        })}
-                        className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-2.5 text-sm focus:outline-none focus:border-[#E8FF6B]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-zinc-500 mb-1">Back Name</label>
-                      <input
-                        type="number"
-                        value={settingsForm.brandingPrices?.embroidery?.backName || 1500}
-                        onChange={(e) => setSettingsForm({ 
-                          ...settingsForm, 
-                          brandingPrices: { 
-                            ...settingsForm.brandingPrices,
-                            embroidery: { ...settingsForm.brandingPrices?.embroidery, backName: Number(e.target.value) }
-                          }
-                        })}
-                        className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-2.5 text-sm focus:outline-none focus:border-[#E8FF6B]"
-                      />
-                    </div>
-                  </div>
+              <div className="flex items-center justify-between bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-sm mb-5">
+                <div>
+                  <span className="block text-sm font-black text-black dark:text-white">Enable Branding at Checkout</span>
+                  <span className="text-xs text-zinc-500">Shows branding option to customers during checkout</span>
                 </div>
-
-                {/* DTF Print */}
-                <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-sm p-4">
-                  <h3 className="text-sm font-black uppercase tracking-wider text-black dark:text-white mb-4">DTF Print</h3>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs font-bold text-zinc-500 mb-1">Chest Logo</label>
-                      <input
-                        type="number"
-                        value={settingsForm.brandingPrices?.dtf?.chestLogo || 1500}
-                        onChange={(e) => setSettingsForm({ 
-                          ...settingsForm, 
-                          brandingPrices: { 
-                            ...settingsForm.brandingPrices,
-                            dtf: { ...settingsForm.brandingPrices?.dtf, chestLogo: Number(e.target.value) }
-                          }
-                        })}
-                        className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-2.5 text-sm focus:outline-none focus:border-[#E8FF6B]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-zinc-500 mb-1">Full Front</label>
-                      <input
-                        type="number"
-                        value={settingsForm.brandingPrices?.dtf?.fullFront || 4000}
-                        onChange={(e) => setSettingsForm({ 
-                          ...settingsForm, 
-                          brandingPrices: { 
-                            ...settingsForm.brandingPrices,
-                            dtf: { ...settingsForm.brandingPrices?.dtf, fullFront: Number(e.target.value) }
-                          }
-                        })}
-                        className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-2.5 text-sm focus:outline-none focus:border-[#E8FF6B]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-zinc-500 mb-1">Back Name</label>
-                      <input
-                        type="number"
-                        value={settingsForm.brandingPrices?.dtf?.backName || 1200}
-                        onChange={(e) => setSettingsForm({ 
-                          ...settingsForm, 
-                          brandingPrices: { 
-                            ...settingsForm.brandingPrices,
-                            dtf: { ...settingsForm.brandingPrices?.dtf, backName: Number(e.target.value) }
-                          }
-                        })}
-                        className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-2.5 text-sm focus:outline-none focus:border-[#E8FF6B]"
-                      />
-                    </div>
-                  </div>
-                </div>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settingsForm.brandingConfig?.enabled || false}
+                    onChange={(e) => {
+                      const bc = settingsForm.brandingConfig || { enabled: true, embroidery: { chestLogo: 500, fullFront: 800, backName: 500 }, dtf: { chestLogo: 300, fullFront: 500, backName: 300 } };
+                      setSettingsForm({ ...settingsForm, brandingConfig: { ...bc, enabled: e.target.checked } });
+                    }}
+                    className="w-5 h-5 accent-[#E8FF6B]"
+                  />
+                  <span className="ml-3 text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                    {(settingsForm.brandingConfig?.enabled) ? "ON" : "OFF"}
+                  </span>
+                </label>
               </div>
 
-              <div className="mt-4 flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="brandingEnabled"
-                  checked={!!settingsForm.brandingEnabled}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, brandingEnabled: e.target.checked })}
-                  className="w-4 h-4 accent-[#E8FF6B]"
-                />
-                <label htmlFor="brandingEnabled" className="text-sm font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 cursor-pointer">
-                  Enable Branding Feature
-                </label>
+              {/* Embroidery Pricing */}
+              <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-sm p-4 mb-4">
+                <h3 className="text-xs font-black uppercase tracking-wider text-[#E8FF6B] mb-3 flex items-center gap-2">
+                  <span>🧵 Embroidery Pricing</span>
+                  <span className="text-[9px] text-zinc-400 font-normal">(price per area)</span>
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {(["chestLogo", "fullFront", "backName"] as const).map((key) => {
+                    const labels: Record<string, string> = { chestLogo: "Chest Logo", fullFront: "Full Front", backName: "Back Name" };
+                    const embro = settingsForm.brandingConfig?.embroidery || { chestLogo: 500, fullFront: 800, backName: 500 };
+                    return (
+                      <div key={key}>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1">{labels[key]}</label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={embro[key]}
+                          onChange={(e) => {
+                            const bc = settingsForm.brandingConfig || { enabled: true, embroidery: { chestLogo: 500, fullFront: 800, backName: 500 }, dtf: { chestLogo: 300, fullFront: 500, backName: 300 } };
+                            setSettingsForm({ ...settingsForm, brandingConfig: { ...bc, embroidery: { ...bc.embroidery, [key]: Number(e.target.value) } } });
+                          }}
+                          className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-2.5 text-sm font-mono focus:outline-none focus:border-[#E8FF6B]"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] text-zinc-400 mt-2">Customer selects one or more areas; total branding fee = sum of selected areas.</p>
+              </div>
+
+              {/* DTF Pricing */}
+              <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-sm p-4">
+                <h3 className="text-xs font-black uppercase tracking-wider text-[#E8FF6B] mb-3 flex items-center gap-2">
+                  <span>🎨 DTF Pricing</span>
+                  <span className="text-[9px] text-zinc-400 font-normal">(price per area)</span>
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {(["chestLogo", "fullFront", "backName"] as const).map((key) => {
+                    const labels: Record<string, string> = { chestLogo: "Chest Logo", fullFront: "Full Front", backName: "Back Name" };
+                    const dtf = settingsForm.brandingConfig?.dtf || { chestLogo: 300, fullFront: 500, backName: 300 };
+                    return (
+                      <div key={key}>
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1">{labels[key]}</label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={dtf[key]}
+                          onChange={(e) => {
+                            const bc = settingsForm.brandingConfig || { enabled: true, embroidery: { chestLogo: 500, fullFront: 800, backName: 500 }, dtf: { chestLogo: 300, fullFront: 500, backName: 300 } };
+                            setSettingsForm({ ...settingsForm, brandingConfig: { ...bc, dtf: { ...bc.dtf, [key]: Number(e.target.value) } } });
+                          }}
+                          className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-2.5 text-sm font-mono focus:outline-none focus:border-[#E8FF6B]"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 

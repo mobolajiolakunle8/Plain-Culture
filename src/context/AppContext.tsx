@@ -6,6 +6,7 @@ import {
   OrderItem, 
   StoreSettings,
   AdminUserRecord,
+  BrandingDetails,
   auth as firebaseAuth, 
   isFirebaseConfigured 
 } from "../lib/firebase";
@@ -86,7 +87,7 @@ interface CartContextType {
   cartTotal: number;
   cartCount: number;
   isCheckingOut: boolean;
-  submitCheckout: (checkoutForm: { name: string; phone: string; address: string; email?: string; deliveryFee?: number; deliveryLocation?: string; proofFile?: File | null; branding?: { type: "embroidery" | "dtf"; placement: "chestLogo" | "fullFront" | "backName"; price: number; customText?: string } }) => Promise<Order | null>;
+  submitCheckout: (checkoutForm: { name: string; phone: string; address: string; email?: string; deliveryFee?: number; deliveryLocation?: string; brandingDetails?: BrandingDetails }) => Promise<Order | null>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -176,7 +177,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const cartTotal = cart.reduce((total, item) => total + item.price * item.qty, 0);
   const cartCount = cart.reduce((count, item) => count + item.qty, 0);
 
-  const submitCheckout = async (checkoutForm: { name: string; phone: string; address: string; email?: string; deliveryFee?: number; deliveryLocation?: string; branding?: { type: "embroidery" | "dtf"; placement: "chestLogo" | "fullFront" | "backName"; price: number; customText?: string } }) => {
+  const submitCheckout = async (checkoutForm: { name: string; phone: string; address: string; email?: string; deliveryFee?: number; deliveryLocation?: string; brandingDetails?: BrandingDetails }) => {
     if (cart.length === 0) return null;
     setIsCheckingOut(true);
 
@@ -200,7 +201,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const safeEmail = sanitizeEmail(checkoutForm.email || "");
       const safeDeliveryLocation = sanitizeText(checkoutForm.deliveryLocation || "");
       const deliveryFee = checkoutForm.deliveryFee || 0;
-      const grandTotal = cartTotal + deliveryFee;
+      const brandingDetails = checkoutForm.brandingDetails;
+      const grandTotal = cartTotal + deliveryFee + (brandingDetails?.price || 0);
 
       // Validate field lengths to prevent abuse
       if (!validateFieldLengths({ safeName, safePhone, safeAddress, safeEmail }, 500)) {
@@ -212,10 +214,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         phone: safePhone,
         address: safeAddress,
         items: cart,
-        totalAmount: grandTotal + (checkoutForm.branding?.price || 0),
+        totalAmount: grandTotal,
         deliveryFee,
         deliveryLocation: safeDeliveryLocation,
-        branding: checkoutForm.branding
+        ...(brandingDetails ? { brandingDetails } : {})
       };
 
       const createdOrder = await dbService.addOrder(orderData);
@@ -244,8 +246,8 @@ Items:
 ${itemsString}
 
 Subtotal: ₦${cartTotal.toLocaleString()}
-${deliveryLine}
-Total (incl. delivery): ₦${orderData.totalAmount.toLocaleString()}
+${deliveryLine}${brandingDetails && brandingDetails.enabled ? `\n\n🎨 Branding (${brandingDetails.type}):\nAreas: ${brandingDetails.areas.join(", ")}${brandingDetails.designText ? `\nDesign: "${brandingDetails.designText}"` : ""}\nBranding Fee: ₦${brandingDetails.price.toLocaleString()}` : ""}
+Total (incl. delivery${brandingDetails && brandingDetails.enabled ? " & branding" : ""}): ₦${orderData.totalAmount.toLocaleString()}
 Name: ${orderData.customerName}
 Phone: ${orderData.phone}
 Address: ${orderData.address}
