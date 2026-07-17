@@ -10,7 +10,7 @@ import {
   auth as firebaseAuth, 
   isFirebaseConfigured 
 } from "../lib/firebase";
-import { signInWithEmailAndPassword, signOut as fbSignOut, onAuthStateChanged } from "firebase/auth";
+import { GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, signOut as fbSignOut, onAuthStateChanged } from "firebase/auth";
 import { sanitizeText, sanitizePhone, sanitizeEmail, validateFieldLengths } from "../utils/sanitize";
 
 // ==========================================
@@ -78,6 +78,19 @@ export const useTheme = () => {
 // ==========================================
 interface CartItem extends OrderItem {}
 
+interface CheckoutPayload {
+  name: string;
+  phone: string;
+  address: string;
+  email?: string;
+  deliveryFee?: number;
+  deliveryLocation?: string;
+  brandingDetails?: BrandingDetails;
+  paymentMethod?: "Bank Transfer" | "Paystack";
+  paymentReference?: string;
+  skipWhatsApp?: boolean;
+}
+
 interface CartContextType {
   cart: CartItem[];
   addToCart: (product: Product, size: string) => void;
@@ -87,21 +100,33 @@ interface CartContextType {
   cartTotal: number;
   cartCount: number;
   isCheckingOut: boolean;
-  submitCheckout: (checkoutForm: { name: string; phone: string; address: string; email?: string; deliveryFee?: number; deliveryLocation?: string; brandingDetails?: BrandingDetails }) => Promise<Order | null>;
+  submitCheckout: (checkoutForm: CheckoutPayload) => Promise<Order | null>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+const getCustomerCartKey = () => {
+  const existingId = localStorage.getItem("pc_customer_cart_id");
+  if (existingId) return `pc_cart_${existingId}`;
+
+  const newId = `customer-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  localStorage.setItem("pc_customer_cart_id", newId);
+  return `pc_cart_${newId}`;
+};
+
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [cartKey] = useState(() => getCustomerCartKey());
   const [cart, setCart] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem("pc_cart");
+    // Remove legacy shared cart key so carts are no longer shared through one global bucket.
+    localStorage.removeItem("pc_cart");
+    const saved = localStorage.getItem(getCustomerCartKey());
     return saved ? JSON.parse(saved) : [];
   });
   const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem("pc_cart", JSON.stringify(cart));
-  }, [cart]);
+    localStorage.setItem(cartKey, JSON.stringify(cart));
+  }, [cart, cartKey]);
 
   const addToCart = (product: Product, size: string) => {
     // 1. Check per-size stock availability
@@ -177,7 +202,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const cartTotal = cart.reduce((total, item) => total + item.price * item.qty, 0);
   const cartCount = cart.reduce((count, item) => count + item.qty, 0);
 
-  const submitCheckout = async (checkoutForm: { name: string; phone: string; address: string; email?: string; deliveryFee?: number; deliveryLocation?: string; brandingDetails?: BrandingDetails }) => {
+  const submitCheckout = async (checkoutForm: CheckoutPayload) => {
     if (cart.length === 0) return null;
     setIsCheckingOut(true);
 
@@ -211,12 +236,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const orderData = {
         customerName: safeName,
+        customerEmail: safeEmail,
         phone: safePhone,
         address: safeAddress,
         items: cart,
         totalAmount: grandTotal,
         deliveryFee,
         deliveryLocation: safeDeliveryLocation,
+        paymentMethod: checkoutForm.paymentMethod || "Bank Transfer",
+        paymentReference: checkoutForm.paymentReference || "",
         ...(brandingDetails ? { brandingDetails } : {})
       };
 
@@ -294,15 +322,16 @@ Address: ${orderData.address}
             botcheck: ""
           })
         });
-        console.log(`📧 Order #${createdOrder.id} email notification sent to ${contactSettings.email}`);
       } catch (emailError) {
         console.error("Web3Forms email notification failed (order still saved):", emailError);
       }
 
       // Delay slightly for smooth transitions
-      setTimeout(() => {
-        window.open(whatsappUrl, "_blank");
-      }, 300);
+      if (!checkoutForm.skipWhatsApp) {
+        setTimeout(() => {
+          window.open(whatsappUrl, "_blank");
+        }, 300);
+      }
 
       return createdOrder;
     } catch (error: any) {
@@ -351,6 +380,8 @@ interface AuthContextType {
   isAdmin: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
+  signUp: (email: string, password: string, name: string) => Promise<boolean>;
+  signInWithGoogle: () => Promise<boolean>;
   logout: () => Promise<void>;
   updateAdminPassword: (newPassword: string) => Promise<boolean>;
 }
@@ -361,37 +392,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const resolveRoleForEmail = async (email: string): Promise<string> => {
+    if (email.toLowerCase() === "plainculture.ng@gmail.com") return "Super Admin";
+    try {
+      const admins = await dbService.getAdminsAsync();
+      const found = admins.find((admin) => admin.email.toLowerCase() === email.toLowerCase());
+      return found?.role || "Customer";
+    } catch {
+      return "Customer";
+    }
+  };
+
   useEffect(() => {
     // 1. Handle real Firebase Auth listener
     //    IMPORTANT: anonymous auth users (no email) MUST NOT overwrite the
     //    manually-logged-in user state. Otherwise Partners get clobbered by
     //    the Super Admin default.
     if (isFirebaseConfigured && firebaseAuth) {
-      const unsubscribe = onAuthStateChanged(firebaseAuth, (firebaseUser) => {
+      const unsubscribe = onAuthStateChanged(firebaseAuth, async (firebaseUser) => {
         if (firebaseUser) {
           const emailStr = firebaseUser.email;
           // Skip anonymous users — they have no real email.
           // The login() function is responsible for setting the user profile.
           if (!emailStr) return;
 
+          const role = await resolveRoleForEmail(emailStr);
           setUser({
             email: emailStr,
-            name: "Plain Culture Admin",
-            role: emailStr.toLowerCase() === "plainculture.ng@gmail.com" ? "Super Admin" : "Admin"
+            name: firebaseUser.displayName || "Plain Culture Customer",
+            role
           });
         } else {
           // Real sign-out event — clear state
           localStorage.removeItem("pc_active_admin");
+          localStorage.removeItem("pc_active_customer");
           setUser(null);
         }
         setIsLoading(false);
       });
       return unsubscribe;
     } else {
-      const localUser = localStorage.getItem("pc_active_admin");
+      const localUser = localStorage.getItem("pc_active_admin") || localStorage.getItem("pc_active_customer");
       if (localUser) {
         const parsed = JSON.parse(localUser);
-        setUser({ ...parsed, role: parsed.email?.toLowerCase() === "plainculture.ng@gmail.com" ? "Super Admin" : "Admin" });
+        setUser({
+          ...parsed,
+          role: parsed.role || (parsed.email?.toLowerCase() === "plainculture.ng@gmail.com" ? "Super Admin" : "Customer")
+        });
       } else {
         setUser(null);
       }
@@ -465,7 +512,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // so Firestore-protected collections (orders, customers, settings) can sync across browsers/devices.
       if (isFirebaseConfigured && firebaseAuth && !firebaseAuth.currentUser) {
         signInWithEmailAndPassword(firebaseAuth, email, password)
-          .then(() => console.log("🔐 Background Firebase admin auth succeeded — cross-browser sync active."))
+          .then(() => undefined)
           .catch((e) => console.warn("Background Firebase admin auth failed — local admin access still works, but cross-browser sync may be limited.", e));
       }
 
@@ -506,8 +553,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
     localStorage.removeItem("pc_active_admin");
+    localStorage.removeItem("pc_active_customer");
     setUser(null);
     setIsLoading(false);
+  };
+
+  const signUp = async (email: string, password: string, name: string): Promise<boolean> => {
+    setIsLoading(true);
+    if (isFirebaseConfigured && firebaseAuth) {
+      try {
+        const { createUserWithEmailAndPassword } = await import("firebase/auth");
+        const credential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
+        if (credential.user) {
+          const userProfile: UserProfile = { email, name, role: "Customer" };
+          localStorage.setItem("pc_active_customer", JSON.stringify(userProfile));
+          setUser(userProfile);
+          setIsLoading(false);
+          return true;
+        }
+      } catch (e) {
+        console.error("Firebase Sign Up failed", e);
+      }
+    }
+    setIsLoading(false);
+    return false;
+  };
+
+  const signInWithGoogle = async (): Promise<boolean> => {
+    if (!isFirebaseConfigured || !firebaseAuth) return false;
+    setIsLoading(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      const credential = await signInWithPopup(firebaseAuth, provider);
+      const email = credential.user.email || "";
+      if (!email) throw new Error("Google account has no email address.");
+      const role = await resolveRoleForEmail(email);
+      const userProfile: UserProfile = {
+        email,
+        name: credential.user.displayName || "Plain Culture Customer",
+        role
+      };
+      localStorage.setItem("pc_active_customer", JSON.stringify(userProfile));
+      setUser(userProfile);
+      setIsLoading(false);
+      return true;
+    } catch (e) {
+      console.error("Google sign-in failed", e);
+      setIsLoading(false);
+      return false;
+    }
   };
 
   const updateAdminPassword = async (newPassword: string): Promise<boolean> => {
@@ -515,11 +609,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem("pc_admin_password", newPassword);
     
     // In production, real auth password updating can be done but we support local mock persistence
-    console.log("Admin password updated to:", newPassword);
     return true;
   };
 
-  const isAdmin = !!user;
+  const isAdmin = !!user && ["Super Admin", "Admin", "Manager", "Partner"].includes(user.role);
 
   return (
     <AuthContext.Provider value={{
@@ -527,6 +620,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAdmin,
       isLoading,
       login,
+      signUp,
+      signInWithGoogle,
       logout,
       updateAdminPassword
     }}>
