@@ -14,13 +14,16 @@ import { MaintenancePage } from "./components/MaintenancePage";
 import { ToastContainer, ToastMessage } from "./components/Toast";
 import { InstallPrompt } from "./components/InstallPrompt";
 import { AiAssistant } from "./components/AiAssistant";
+import { CustomerAuthPrompt } from "./components/CustomerAuthPrompt";
+import { CustomerDashboard } from "./components/CustomerDashboard";
+import { WelcomeBackCustomer } from "./components/WelcomeBackCustomer";
 import { Sparkles, Cpu, RefreshCw, Layers, Compass } from "lucide-react";
 
 // Inner core of the application to gain access to Cart state and contexts safely
 const StorefrontContent: React.FC = () => {
   const settings = useSettings();
   // Navigation Routing — detect ?admin=true in URL for secret admin access
-  const [currentView, setCurrentView] = useState<"home" | "admin" | "return-policy" | "track-order" | "maintenance">(() => {
+  const [currentView, setCurrentView] = useState<"home" | "admin" | "return-policy" | "track-order" | "account">(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get("admin") === "true" ? "admin" : "home";
   });
@@ -72,6 +75,10 @@ const StorefrontContent: React.FC = () => {
           setCurrentView("home");
           window.scrollTo({ top: 0, behavior: "smooth" });
         }}
+        onNavigateToAccount={() => {
+          setCurrentView("account");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
       />
 
       {/* MAINTENANCE MODE (global) — shown to non-admins when enabled */}
@@ -84,9 +91,9 @@ const StorefrontContent: React.FC = () => {
             }}
           />
         </div>
-      ) : currentView === "maintenance" ? (
+      ) : currentView === "account" ? (
         <div className="flex-grow animate-fade-in">
-          <MaintenancePage 
+          <CustomerDashboard
             onNavigateToHome={() => {
               setCurrentView("home");
               window.scrollTo({ top: 0, behavior: "smooth" });
@@ -321,6 +328,20 @@ const StorefrontContent: React.FC = () => {
 
       {/* Nigerian AI Shopping Assistant */}
       <AiAssistant />
+
+      {/* Optional customer sign-in/sign-up prompt */}
+      <CustomerAuthPrompt
+        disabled={currentView === "admin" || !!settings.maintenanceMode}
+        onAddToast={addToast}
+      />
+
+      {/* Welcome back popup for returning signed-in customers */}
+      <WelcomeBackCustomer
+        onNavigateToAccount={() => {
+          setCurrentView("account");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+      />
 
     </div>
   );
