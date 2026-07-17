@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useCart, useSettings } from "../context/AppContext";
+import { dbService } from "../lib/firebase";
 import { 
   X, ShoppingBag, Trash2, Plus, Minus, ArrowRight, 
   ShieldCheck, MapPin, Phone, Building2, Hash, User, 
@@ -13,6 +14,32 @@ interface CartAndCheckoutDrawerProps {
 }
 
 type CheckoutStep = "cart" | "form" | "payment";
+
+declare global {
+  interface Window {
+    PaystackPop?: any;
+  }
+}
+
+const PAYSTACK_PUBLIC_KEY = (import.meta as any).env?.VITE_PAYSTACK_PUBLIC_KEY || "pk_test_REPLACE_WITH_YOUR_PAYSTACK_PUBLIC_KEY";
+
+const loadPaystackScript = () => {
+  return new Promise<void>((resolve, reject) => {
+    if (window.PaystackPop) return resolve();
+    const existing = document.querySelector("script[src='https://js.paystack.co/v1/inline.js']");
+    if (existing) {
+      existing.addEventListener("load", () => resolve());
+      existing.addEventListener("error", () => reject(new Error("Could not load Paystack.")));
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://js.paystack.co/v1/inline.js";
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Could not load Paystack."));
+    document.body.appendChild(script);
+  });
+};
 
 // Country codes for phone number selection
 const COUNTRY_CODES = [
@@ -120,6 +147,7 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
   const [emailValidating, setEmailValidating] = useState(false);
   const [emailValid, setEmailValid] = useState<boolean | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [isPayingOnline, setIsPayingOnline] = useState(false);
 
   const deliveryZones = settings.deliveryZones || [];
   const brandingConfig = settings.brandingConfig || { enabled: true, embroidery: { chestLogo: 500, fullFront: 800, backName: 500 }, dtf: { chestLogo: 300, fullFront: 500, backName: 300 } };
@@ -278,6 +306,107 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
       setFormData({ countryCode: "+234", phone: "", name: "", address: "", email: "", deliveryZoneId: "", deliveryFee: 0, brandingEnabled: false, brandingType: "", brandingAreas: [], brandingDesignText: "" });
       setCheckoutStep("cart");
       onClose();
+    }
+  };
+
+  const getGrandTotal = () => cartTotal + (isOutsideIbadan ? 0 : formData.deliveryFee) + brandingTotal;
+
+  const handlePaystackPayment = async () => {
+    if (!formData.email.trim()) {
+      onAddToast("Please enter your Gmail address before paying online.", "error");
+      setCheckoutStep("form");
+      return;
+    }
+
+    const emailOk = await validateEmail(formData.email);
+    if (!emailOk) {
+      onAddToast("Only valid Gmail addresses can be used for online payment.", "error");
+      setCheckoutStep("form");
+      return;
+    }
+
+    if (PAYSTACK_PUBLIC_KEY.includes("REPLACE_WITH")) {
+      onAddToast("Paystack public key is not configured yet.", "error");
+      return;
+    }
+
+    try {
+      setIsPayingOnline(true);
+      await loadPaystackScript();
+
+      const fullPhone = `${formData.countryCode}${formData.phone}`;
+      const locationLabel = selectedZone?.landmark || "";
+      const brandingDetails = formData.brandingEnabled && formData.brandingType && formData.brandingAreas.length > 0
+        ? {
+            enabled: true,
+            type: formData.brandingType,
+            areas: formData.brandingAreas,
+            designText: formData.brandingDesignText,
+            price: brandingTotal
+          }
+        : undefined;
+      const total = getGrandTotal();
+      const reference = `PC-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+
+      const paystack = window.PaystackPop.setup({
+        key: PAYSTACK_PUBLIC_KEY,
+        email: formData.email.trim(),
+        amount: total * 100,
+        currency: "NGN",
+        ref: reference,
+        metadata: {
+          custom_fields: [
+            { display_name: "Customer Name", variable_name: "customer_name", value: formData.name },
+            { display_name: "Phone", variable_name: "phone", value: fullPhone },
+            { display_name: "Delivery Location", variable_name: "delivery_location", value: locationLabel }
+          ]
+        },
+        callback: async (response: any) => {
+          try {
+            const verifyRes = await fetch("/api/verify-paystack", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ reference: response.reference })
+            });
+            const verifyData = await verifyRes.json();
+            if (!verifyData.success) throw new Error("Payment verification failed.");
+
+            const createdOrder = await submitCheckout({
+              name: formData.name,
+              phone: fullPhone,
+              address: `${formData.address} (${locationLabel})`,
+              email: formData.email,
+              deliveryFee: isOutsideIbadan ? 0 : formData.deliveryFee,
+              deliveryLocation: locationLabel,
+              brandingDetails,
+              paymentMethod: "Paystack",
+              paymentReference: response.reference,
+              skipWhatsApp: true
+            });
+
+            if (createdOrder) {
+              await dbService.updateOrderStatus(createdOrder.id, "Confirmed");
+              onAddToast(`Payment successful. Order #${createdOrder.id} confirmed.`, "success");
+              setFormData({ countryCode: "+234", phone: "", name: "", address: "", email: "", deliveryZoneId: "", deliveryFee: 0, brandingEnabled: false, brandingType: "", brandingAreas: [], brandingDesignText: "" });
+              setCheckoutStep("cart");
+              onClose();
+            }
+          } catch (error: any) {
+            onAddToast(error.message || "Payment could not be verified.", "error");
+          } finally {
+            setIsPayingOnline(false);
+          }
+        },
+        onClose: () => {
+          setIsPayingOnline(false);
+          onAddToast("Payment window closed.", "info");
+        }
+      });
+
+      paystack.openIframe();
+    } catch (error: any) {
+      setIsPayingOnline(false);
+      onAddToast(error.message || "Unable to start Paystack payment.", "error");
     }
   };
 
@@ -720,7 +849,23 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
               <div className="space-y-5">
                 <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 pb-3 border-b border-zinc-200 dark:border-zinc-900">
                   <CreditCard className="w-4 h-4 text-[#E8FF6B]" />
-                  <span>Make a bank transfer to the account below. Send proof via WhatsApp.</span>
+                  <span>Pay securely online, or use bank transfer and confirm via WhatsApp.</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handlePaystackPayment}
+                  disabled={isPayingOnline}
+                  className={`w-full py-4 bg-[#E8FF6B] hover:bg-[#d0e54d] text-black font-extrabold uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-2 cursor-pointer rounded-sm shadow-md ${isPayingOnline ? "opacity-60 cursor-wait" : ""}`}
+                >
+                  <CreditCard className="w-4 h-4" />
+                  <span>{isPayingOnline ? "Opening Paystack..." : `Pay Online ₦${getGrandTotal().toLocaleString()}`}</span>
+                </button>
+
+                <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-bold text-zinc-500">
+                  <span className="h-px flex-1 bg-zinc-800" />
+                  <span>or bank transfer</span>
+                  <span className="h-px flex-1 bg-zinc-800" />
                 </div>
 
                 <div className="bg-gradient-to-br from-zinc-900 to-black text-white p-5 rounded-sm border border-zinc-800 shadow-xl">
@@ -783,9 +928,11 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
                     <div className="pt-3 border-t border-zinc-800">
                       <label className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mb-1 block">Amount To Transfer</label>
                       <div className="bg-[#E8FF6B] text-black p-3 rounded-sm flex items-center justify-between">
-                        <span className="text-xl font-black tracking-tight">₦{(cartTotal + (isOutsideIbadan ? 0 : formData.deliveryFee) + (formData.brandingEnabled ? brandingTotal : 0)).toLocaleString()}</span>
+                        <span className="text-xl font-black tracking-tight">
+                          ₦{(cartTotal + (isOutsideIbadan ? 0 : formData.deliveryFee) + brandingTotal).toLocaleString()}
+                        </span>
                         <button
-                          onClick={() => handleCopy((cartTotal + (isOutsideIbadan ? 0 : formData.deliveryFee) + (formData.brandingEnabled ? brandingTotal : 0)).toString(), "Amount")}
+                          onClick={() => handleCopy(String(cartTotal + (isOutsideIbadan ? 0 : formData.deliveryFee) + brandingTotal), "Amount")}
                           className="p-1 hover:bg-black/10 rounded cursor-pointer"
                         >
                           {copiedField === "Amount" ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}

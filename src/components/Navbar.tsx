@@ -1,19 +1,23 @@
 import React from "react";
-import { useTheme, useCart, useSettings } from "../context/AppContext";
-import { ShoppingBag, Sun, Moon } from "lucide-react";
+import { useTheme, useCart, useSettings, useAuth } from "../context/AppContext";
+import { ShoppingBag, Sun, Moon, User } from "lucide-react";
 import { Marquee } from "./Marquee";
+import { CustomerNotificationsBell } from "./CustomerNotificationsBell";
 
 interface NavbarProps {
   onOpenCart: () => void;
   onNavigateToHome: () => void;
+  onNavigateToAccount: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ 
   onOpenCart, 
-  onNavigateToHome
+  onNavigateToHome,
+  onNavigateToAccount
 }) => {
   const { theme, toggleTheme } = useTheme();
   const { cartCount, cartTotal } = useCart();
+  const { user } = useAuth();
   const settings = useSettings();
 
   return (
@@ -76,6 +80,23 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Moon className="w-5 h-5 text-zinc-900 transition-transform group-hover:-rotate-12" />
             )}
           </button>
+
+          {/* User Account Icon - Always show if any user (except Super Admin/Manager) is logged in */}
+          {user && user.role === "Customer" && <CustomerNotificationsBell />}
+
+          {user && (user.role === "Customer" || user.role === "Partner") && (
+            <button
+              onClick={onNavigateToAccount}
+              className="flex items-center gap-2 px-3 py-2 rounded-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-black dark:text-white hover:border-[#E8FF6B] transition-all cursor-pointer group/user"
+              title="Open My Dashboard"
+              aria-label="My Account"
+            >
+              <User className="w-4 h-4 text-zinc-500 group-hover/user:text-[#E8FF6B]" />
+              <span className="text-[11px] font-black uppercase tracking-tight max-w-[120px] truncate">
+                {user.name?.split(" ")[0] || "Account"}
+              </span>
+            </button>
+          )}
 
           {/* Shopping Cart Trigger */}
           <button
