@@ -59,7 +59,6 @@ if (isFirebaseConfigured) {
     // Analytics intentionally disabled to avoid ad-blocker/gtag connection errors during order sync testing.
     analytics = null;
 
-    console.log("🔥 Firebase initialized successfully!");
   } catch (error) {
     console.error("❌ Error initializing Firebase, falling back to Mock DB:", error);
     app = null;
@@ -105,6 +104,7 @@ export interface BrandingDetails {
 export interface Order {
   id: string;
   customerName: string;
+  customerEmail?: string;
   phone: string;
   address: string;
   items: OrderItem[];
@@ -112,6 +112,8 @@ export interface Order {
   deliveryFee?: number;
   deliveryLocation?: string;
   brandingDetails?: BrandingDetails;
+  paymentMethod?: "Bank Transfer" | "Paystack";
+  paymentReference?: string;
   status: "Pending" | "Confirmed" | "Delivered";
   createdAt: string; // ISO string
 }
@@ -528,7 +530,6 @@ export const dbService = {
       try {
         await ensureFirebaseAuthSession();
         await setDoc(doc(db, "products", newProduct.id), newProduct);
-        console.log("Product saved to Firebase!");
       } catch (e) {
         console.error("Firebase addProduct error:", e);
       }
@@ -553,7 +554,6 @@ export const dbService = {
         await ensureFirebaseAuthSession();
         const docRef = doc(db, "products", id);
         await updateDoc(docRef, updatedFields);
-        console.log("Product updated in Firebase!");
       } catch (e) {
         console.error("Firebase updateProduct error:", e);
       }
@@ -570,7 +570,6 @@ export const dbService = {
       try {
         await ensureFirebaseAuthSession();
         await deleteDoc(doc(db, "products", id));
-        console.log("Product deleted from Firebase!");
       } catch (e) {
         console.error("Firebase deleteProduct error:", e);
       }
@@ -647,7 +646,6 @@ export const dbService = {
       try {
         await ensureFirebaseAuthSession();
         await setDoc(doc(db, "orders", newOrder.id), newOrder);
-        console.log("Order saved to Firebase!");
       } catch (e) {
         console.error("Firebase addOrder error:", e);
       }
@@ -693,7 +691,7 @@ export const dbService = {
         // Update firebase stock asynchronously
         if (isFirebaseConfigured && db) {
           updateDoc(doc(db, "products", item.id), { stockQuantity: newTotalStock, sizeStock })
-            .then(() => console.log("Firebase stock updated!"))
+            .then(() => undefined)
             .catch((e) => console.error("Firebase stock update error:", e));
         }
       }
@@ -723,7 +721,6 @@ export const dbService = {
       try {
         await ensureFirebaseAuthSession();
         await updateDoc(doc(db, "orders", id), { status });
-        console.log("Order status updated in Firebase!");
       } catch (e) {
         console.error("Firebase updateOrderStatus error:", e);
       }
