@@ -11,14 +11,14 @@ import { Footer } from "./components/Footer";
 import { ReturnPolicyPage } from "./components/ReturnPolicyPage";
 import { OrderTrackingPage } from "./components/OrderTrackingPage";
 import { MaintenancePage } from "./components/MaintenancePage";
+import { WishlistPage } from "./components/WishlistPage";
 import { ToastContainer, ToastMessage } from "./components/Toast";
 import { InstallPrompt } from "./components/InstallPrompt";
 import { AiAssistant } from "./components/AiAssistant";
 import { CustomerAuthPrompt } from "./components/CustomerAuthPrompt";
 import { CustomerDashboard } from "./components/CustomerDashboard";
 import { WelcomeBackCustomer } from "./components/WelcomeBackCustomer";
-import { WishlistPage } from "./components/WishlistPage";
-import { Sparkles, Cpu, RefreshCw, Layers, Compass, Clock } from "lucide-react";
+import { Sparkles, Cpu, RefreshCw, Layers, Compass } from "lucide-react";
 
 // Inner core of the application to gain access to Cart state and contexts safely
 const StorefrontContent: React.FC = () => {
@@ -32,7 +32,6 @@ const StorefrontContent: React.FC = () => {
   // Interactive UI state
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
   
   // Real-time live products list
   const [products, setProducts] = useState<Product[]>([]);
@@ -64,16 +63,11 @@ const StorefrontContent: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  // Drop Release Logic
-  const isDropLive = !settings.dropReleaseDate || new Date() >= new Date(settings.dropReleaseDate);
+  // Filter public catalog to only show active products
+  const activeProducts = products.filter((p) => p.isActive);
 
-  // Filter public catalog
-  const activeProducts = products.filter((p) => {
-    if (!p.isActive) return false;
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         p.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
-  });
+  // Drop Release Status logic
+  const isDropLive = !settings.dropReleaseEnabled || new Date(settings.dropReleaseDate).getTime() <= Date.now();
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-black text-black dark:text-zinc-100 transition-colors duration-300">
@@ -114,16 +108,6 @@ const StorefrontContent: React.FC = () => {
             }}
           />
         </div>
-      ) : currentView === "wishlist" ? (
-        <div className="flex-grow animate-fade-in">
-          <WishlistPage
-            onNavigateToHome={() => {
-              setCurrentView("home");
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
-            onOpenCart={() => setIsCartOpen(true)}
-          />
-        </div>
       ) : currentView === "return-policy" ? (
         <div className="flex-grow animate-fade-in">
           <ReturnPolicyPage 
@@ -140,6 +124,17 @@ const StorefrontContent: React.FC = () => {
               setCurrentView("home");
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
+          />
+        </div>
+      ) : currentView === "wishlist" ? (
+        <div className="flex-grow animate-fade-in">
+          <WishlistPage 
+            onNavigateToHome={() => {
+              setCurrentView("home");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            onPreview={(p) => setSelectedProduct(p)}
+            onAddToast={addToast}
           />
         </div>
       ) : currentView === "admin" ? (
@@ -179,30 +174,10 @@ const StorefrontContent: React.FC = () => {
                 </p>
               </div>
 
-              <div className="flex flex-col gap-3 w-full md:w-auto">
-                <div className="relative group">
-                  <Compass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-[#E8FF6B] transition-colors" />
-                  <input 
-                    type="text" 
-                    placeholder="Search drops..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full md:w-64 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 py-2.5 pl-10 pr-4 text-xs focus:outline-none focus:border-[#E8FF6B] transition-all uppercase font-bold tracking-widest"
-                  />
-                </div>
-                <div className="text-right self-start md:self-auto text-[10px] text-zinc-400 uppercase tracking-widest bg-zinc-100 dark:bg-zinc-950 p-2 rounded-sm border border-zinc-200 dark:border-zinc-900">
-                  <span>Free dispatch delivery within Ibadan</span>
-                </div>
+              <div className="text-right self-start md:self-auto text-xs text-zinc-400 uppercase tracking-widest bg-zinc-100 dark:bg-zinc-950 p-3 rounded-sm border border-zinc-200 dark:border-zinc-900">
+                <span>Free dispatch delivery within Ibadan</span>
               </div>
             </div>
-
-            {!isDropLive && (
-              <div className="mb-12 bg-black border border-zinc-800 p-8 text-center rounded-sm animate-pulse">
-                <Clock className="w-8 h-8 text-[#E8FF6B] mx-auto mb-4" />
-                <h3 className="text-xl font-black uppercase tracking-[0.2em] mb-2">Next Drop Incoming</h3>
-                <p className="text-zinc-400 text-sm">Release scheduled for {new Date(settings.dropReleaseDate).toLocaleString()}</p>
-              </div>
-            )}
 
             {isLoading ? (
               // Loading Skeleton loader
@@ -238,6 +213,7 @@ const StorefrontContent: React.FC = () => {
                     product={prod} 
                     onPreview={(p) => setSelectedProduct(p)}
                     onAddToast={addToast}
+                    isDropLive={isDropLive}
                   />
                 ))}
               </div>
