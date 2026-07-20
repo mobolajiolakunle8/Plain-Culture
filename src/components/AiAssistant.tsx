@@ -17,14 +17,9 @@ const generateResponse = (input: string, products: Product[], settings: any): st
   const address = settings.physicalAddress || "Ibadan, Oyo-State, Nigeria";
   const activeProducts = products.filter(p => p.isActive);
 
-  // Wishlist
-  if (/wishlist|save.*later|heart|save.*item/.test(q)) {
-    return `You can use the **Heart icon** on any product to save it to your wishlist! ❤️\n\nYou'll find your saved items in your **My Wishlist** page (accessible via the Heart icon in the navbar).\n\nIf you sign up for an account, your wishlist will be saved permanently across all your devices! 😊`;
-  }
-
   // Greetings
   if (/^(hi|hello|hey|good morning|good afternoon|good evening|how far|what's up|wassup|sup|omo|abeg|e kaaro|e kaasan)/.test(q)) {
-    return `Hello! 👋 Welcome to ${brandName}! Great to have you here.\n\nI can help you with:\n• Our available products\n• Wishlist and saving for later\n• Sizes and stock\n• Pricing and delivery\n• How to place an order\n\nWhat would you like to know? 😊`;
+    return `Hello! 👋 Welcome to ${brandName}! Great to have you here.\n\nI can help you with:\n• Our available products\n• Sizes and stock\n• Pricing and delivery\n• How to place an order\n\nWhat would you like to know? 😊`;
   }
 
   // Products / What do you sell
