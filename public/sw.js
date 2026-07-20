@@ -3,6 +3,7 @@ const CACHE_NAME = "plain-culture-v2";
 // ONLY pre-cache lightweight static assets.
 // Do NOT pre-cache the massive index.html (1.2MB single-file build) — it crashes installation.
 const PRECACHE_ASSETS = [
+  "/icon.svg",
   "/icon-192.png",
   "/icon-512.png",
   "/manifest.json"

@@ -13,7 +13,7 @@
       "src": "/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icon-192.png",
@@ -34,7 +34,7 @@
       "name": "Shop the Drop",
       "short_name": "Shop",
       "url": "/",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
     }
   ]
 }

@@ -1,19 +1,6 @@
-<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background: Black rounded square -->
-  <rect width="512" height="512" rx="115" fill="#000000"/>
-  
-  <!-- 
-    The "C" Mark with horizontal bar.
-    Drawn using strokes to match the thickness of the brand logo.
-    Color: Off-white (#ECECE6) to match the premium look.
-  -->
-  <g fill="none" stroke="#ECECE6" stroke-width="34">
-    <!-- The C Arc (open on the right side) -->
-    <path d="M 340 175 
-             A 90 90 0 1 0 340 337" 
-          stroke-linecap="butt"/>
-    
-    <!-- The horizontal bar inside the C -->
-    <line x1="256" y1="256" x2="350" y2="256"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Plain Culture app icon">
+  <rect width="512" height="512" rx="86" fill="#000000"/>
+  <path fill="#f5f5ef" d="M258 142h116c18 0 32 14 32 32v22H259c-53 0-85 33-85 86s32 86 85 86h147v22c0 18-14 32-32 32H258c-89 0-152-58-152-140s63-140 152-140Z"/>
+  <path fill="#000000" d="M265 235h141v94H265c-31 0-51-17-51-47s20-47 51-47Z"/>
+  <rect x="259" y="267" width="147" height="30" rx="15" fill="#f5f5ef"/>
 </svg>
