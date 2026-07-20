@@ -334,6 +334,8 @@ const DEFAULT_SETTINGS = {
     embroidery: { chestLogo: 500, fullFront: 800, backName: 500 },
     dtf: { chestLogo: 300, fullFront: 500, backName: 300 }
   },
+  dropReleaseDate: new Date(Date.now() + 1000 * 60 * 60 * 48).toISOString(),
+  dropReleaseEnabled: false,
   storeLat: 7.3775, // Default store location (Ibadan center)
   storeLng: 3.9470,
   deliveryZones: [
