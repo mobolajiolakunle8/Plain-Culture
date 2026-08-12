@@ -9,48 +9,39 @@ interface HeroSectionProps {
 export const HeroSection: React.FC<HeroSectionProps> = ({ onShopClick }) => {
   const settings = useSettings();
   
-  const [closingTime, setClosingTime] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: false });
-  const [releaseTime, setReleaseTime] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, live: false });
+  const [timeLeft, setTimeLeft] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+    expired: false
+  });
 
   useEffect(() => {
+    // Use the admin-editable drop end date
+    const target = new Date(settings.dropEndDate);
+
     const tick = () => {
-      const now = new Date().getTime();
-      
-      // 1. Handle Closing Countdown
-      const closeTarget = new Date(settings.dropEndDate).getTime();
-      const closeDiff = closeTarget - now;
-      if (closeDiff <= 0) {
-        setClosingTime({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: true });
-      } else {
-        setClosingTime({
-          days: Math.floor(closeDiff / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((closeDiff / (1000 * 60 * 60)) % 24),
-          minutes: Math.floor((closeDiff / 1000 / 60) % 60),
-          seconds: Math.floor((closeDiff / 1000) % 60),
-          expired: false
-        });
+      const now = new Date();
+      const diff = target.getTime() - now.getTime();
+
+      if (diff <= 0) {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: true });
+        return;
       }
 
-      // 2. Handle Release Countdown
-      const releaseTarget = new Date(settings.dropReleaseDate).getTime();
-      const releaseDiff = releaseTarget - now;
-      if (releaseDiff <= 0) {
-        setReleaseTime({ days: 0, hours: 0, minutes: 0, seconds: 0, live: true });
-      } else {
-        setReleaseTime({
-          days: Math.floor(releaseDiff / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((releaseDiff / (1000 * 60 * 60)) % 24),
-          minutes: Math.floor((releaseDiff / 1000 / 60) % 60),
-          seconds: Math.floor((releaseDiff / 1000) % 60),
-          live: false
-        });
-      }
+      const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const m = Math.floor((diff / 1000 / 60) % 60);
+      const s = Math.floor((diff / 1000) % 60);
+
+      setTimeLeft({ days: d, hours: h, minutes: m, seconds: s, expired: false });
     };
 
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [settings.dropEndDate, settings.dropReleaseDate]);
+  }, [settings.dropEndDate]);
 
   return (
     <section className="relative w-full overflow-hidden bg-black text-white">
@@ -84,64 +75,50 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onShopClick }) => {
           {settings.heroSubtitle}
         </p>
 
-        {/* 1. UPCOMING DROP RELEASE TIMER */}
-        {settings.dropReleaseEnabled && !releaseTime.live && (
-          <div className="w-full max-w-lg bg-zinc-950/85 backdrop-blur-md border border-[#E8FF6B]/30 rounded-sm p-5 mb-12 shadow-2xl animate-pulse">
-            <div className="flex items-center justify-between border-b border-[#E8FF6B]/10 pb-3 mb-4">
-              <span className="text-xs font-black tracking-[0.2em] text-[#E8FF6B] uppercase flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5" />
-                NEXT DROP RELEASES IN
-              </span>
-            </div>
-            <div className="grid grid-cols-4 gap-4">
-              {[
-                { val: releaseTime.days, label: "DAYS" },
-                { val: releaseTime.hours, label: "HRS" },
-                { val: releaseTime.minutes, label: "MINS" },
-                { val: releaseTime.seconds, label: "SECS" }
-              ].map(t => (
-                <div key={t.label} className="text-center">
-                  <span className="block text-2xl sm:text-4xl font-black tracking-tight text-white">{String(t.val).padStart(2, "0")}</span>
-                  <span className="text-[9px] uppercase font-bold tracking-widest text-zinc-500">{t.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 2. ACTIVE DROP CLOSING TIMER (if no upcoming drop or if upcoming drop is now live) */}
-        {settings.countdownEnabled && (releaseTime.live || !settings.dropReleaseEnabled) && (
+        {/* Scarcity countdown panel - only visible if admin enabled it */}
+        {settings.countdownEnabled && (
           <div className="w-full max-w-lg bg-zinc-950/85 backdrop-blur-md border border-zinc-800 rounded-sm p-5 mb-12 shadow-2xl">
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3 mb-4">
               <span className="text-xs font-bold tracking-[0.2em] text-zinc-400 uppercase flex items-center gap-1.5">
                 <Zap className="w-3.5 h-3.5 text-[#E8FF6B] animate-pulse" />
-                {closingTime.expired ? "DROP ENDED" : "DROP CLOSES IN"}
+                {timeLeft.expired ? "DROP ENDED" : "DROP CLOSES IN"}
               </span>
               <span className="text-[10px] font-bold text-[#E8FF6B] uppercase tracking-[0.1em] px-2 py-0.5 bg-[#E8FF6B]/10 rounded">
-                {closingTime.expired ? "RESTOCK SOON" : "LAST PIECES REMAINING"}
+                {timeLeft.expired ? "RESTOCK SOON" : "LAST PIECES REMAINING"}
               </span>
             </div>
             
-            {closingTime.expired ? (
+            {timeLeft.expired ? (
               <div className="py-6 text-center">
-                <p className="text-2xl font-black text-[#E8FF6B] tracking-wider uppercase">Collection Sold Out</p>
-                <p className="text-[10px] text-zinc-400 mt-1 uppercase tracking-widest">Sign up to get early access to drop 02</p>
+                <p className="text-2xl font-black text-[#E8FF6B] tracking-wider">DROP CLOSED</p>
+                <p className="text-xs text-zinc-400 mt-1 uppercase tracking-widest">Sign up for next drop notifications</p>
               </div>
             ) : (
               <div className="grid grid-cols-4 gap-4">
-                {[
-                  { val: closingTime.days, label: "DAYS" },
-                  { val: closingTime.hours, label: "HRS" },
-                  { val: closingTime.minutes, label: "MINS" },
-                  { val: closingTime.seconds, label: "SECS" }
-                ].map((t, idx) => (
-                  <div key={t.label} className="text-center">
-                    <span className={`block text-2xl sm:text-4xl font-black tracking-tight ${idx === 3 ? "text-[#E8FF6B]" : "text-white"}`}>
-                      {String(t.val).padStart(2, "0")}
-                    </span>
-                    <span className="text-[9px] uppercase font-bold tracking-widest text-zinc-500">{t.label}</span>
-                  </div>
-                ))}
+                <div className="text-center">
+                  <span className="block text-2xl sm:text-4xl font-extrabold tracking-tight text-[#E8FF6B]">
+                    {String(timeLeft.days).padStart(2, "0")}
+                  </span>
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-500">DAYS</span>
+                </div>
+                <div className="text-center">
+                  <span className="block text-2xl sm:text-4xl font-extrabold tracking-tight text-white">
+                    {String(timeLeft.hours).padStart(2, "0")}
+                  </span>
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-500">HOURS</span>
+                </div>
+                <div className="text-center">
+                  <span className="block text-2xl sm:text-4xl font-extrabold tracking-tight text-white">
+                    {String(timeLeft.minutes).padStart(2, "0")}
+                  </span>
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-500">MINS</span>
+                </div>
+                <div className="text-center col-span-1">
+                  <span className="block text-2xl sm:text-4xl font-extrabold tracking-tight text-[#E8FF6B] transition-all">
+                    {String(timeLeft.seconds).padStart(2, "0")}
+                  </span>
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-500">SECS</span>
+                </div>
               </div>
             )}
           </div>

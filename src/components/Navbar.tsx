@@ -1,6 +1,6 @@
 import React from "react";
 import { useTheme, useCart, useSettings, useAuth } from "../context/AppContext";
-import { ShoppingBag, Sun, Moon, User, Heart } from "lucide-react";
+import { ShoppingBag, Sun, Moon, User } from "lucide-react";
 import { Marquee } from "./Marquee";
 import { CustomerNotificationsBell } from "./CustomerNotificationsBell";
 
@@ -8,14 +8,12 @@ interface NavbarProps {
   onOpenCart: () => void;
   onNavigateToHome: () => void;
   onNavigateToAccount: () => void;
-  onNavigateToWishlist: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ 
   onOpenCart, 
   onNavigateToHome,
-  onNavigateToAccount,
-  onNavigateToWishlist
+  onNavigateToAccount
 }) => {
   const { theme, toggleTheme } = useTheme();
   const { cartCount, cartTotal } = useCart();
@@ -85,14 +83,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* User Account Icon - Always show if any user (except Super Admin/Manager) is logged in */}
           {user && user.role === "Customer" && <CustomerNotificationsBell />}
-
-          <button
-            onClick={onNavigateToWishlist}
-            className="p-2.5 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-600 dark:text-zinc-300 transition-all cursor-pointer relative group"
-            title="Your Wishlist"
-          >
-            <Heart className="w-5 h-5 group-hover:text-red-500 transition-colors" />
-          </button>
 
           {user && (user.role === "Customer" || user.role === "Partner") && (
             <button

@@ -11,7 +11,6 @@ import { Footer } from "./components/Footer";
 import { ReturnPolicyPage } from "./components/ReturnPolicyPage";
 import { OrderTrackingPage } from "./components/OrderTrackingPage";
 import { MaintenancePage } from "./components/MaintenancePage";
-import { WishlistPage } from "./components/WishlistPage";
 import { ToastContainer, ToastMessage } from "./components/Toast";
 import { InstallPrompt } from "./components/InstallPrompt";
 import { AiAssistant } from "./components/AiAssistant";
@@ -24,7 +23,7 @@ import { Sparkles, Cpu, RefreshCw, Layers, Compass } from "lucide-react";
 const StorefrontContent: React.FC = () => {
   const settings = useSettings();
   // Navigation Routing — detect ?admin=true in URL for secret admin access
-  const [currentView, setCurrentView] = useState<"home" | "admin" | "return-policy" | "track-order" | "account" | "wishlist">(() => {
+  const [currentView, setCurrentView] = useState<"home" | "admin" | "return-policy" | "track-order" | "account">(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get("admin") === "true" ? "admin" : "home";
   });
@@ -66,9 +65,6 @@ const StorefrontContent: React.FC = () => {
   // Filter public catalog to only show active products
   const activeProducts = products.filter((p) => p.isActive);
 
-  // Drop Release Status logic
-  const isDropLive = !settings.dropReleaseEnabled || new Date(settings.dropReleaseDate).getTime() <= Date.now();
-
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-black text-black dark:text-zinc-100 transition-colors duration-300">
       
@@ -81,10 +77,6 @@ const StorefrontContent: React.FC = () => {
         }}
         onNavigateToAccount={() => {
           setCurrentView("account");
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        }}
-        onNavigateToWishlist={() => {
-          setCurrentView("wishlist");
           window.scrollTo({ top: 0, behavior: "smooth" });
         }}
       />
@@ -124,17 +116,6 @@ const StorefrontContent: React.FC = () => {
               setCurrentView("home");
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
-          />
-        </div>
-      ) : currentView === "wishlist" ? (
-        <div className="flex-grow animate-fade-in">
-          <WishlistPage 
-            onNavigateToHome={() => {
-              setCurrentView("home");
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
-            onPreview={(p) => setSelectedProduct(p)}
-            onAddToast={addToast}
           />
         </div>
       ) : currentView === "admin" ? (
@@ -213,7 +194,6 @@ const StorefrontContent: React.FC = () => {
                     product={prod} 
                     onPreview={(p) => setSelectedProduct(p)}
                     onAddToast={addToast}
-                    isDropLive={isDropLive}
                   />
                 ))}
               </div>

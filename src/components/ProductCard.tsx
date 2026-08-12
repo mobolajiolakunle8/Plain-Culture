@@ -1,47 +1,21 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Product } from "../lib/firebase";
-import { useAuth } from "../context/AppContext";
-import { Eye, Share2, Check, Copy, MessageCircle, Camera, X, Heart, Clock } from "lucide-react";
+import { Eye, Share2, Check, Copy, MessageCircle, Camera, X } from "lucide-react";
 
 interface ProductCardProps {
   product: Product;
   onPreview: (product: Product) => void;
   onAddToast?: (text: string, type: "success" | "error" | "info") => void;
-  isDropLive?: boolean;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product, onPreview, onAddToast, isDropLive = true }) => {
-  const { user } = useAuth();
+export const ProductCard: React.FC<ProductCardProps> = ({ product, onPreview, onAddToast }) => {
   const [copied, setCopied] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-  const [isInWishlist, setIsInWishlist] = useState(false);
   const isSoldOut = product.stockQuantity <= 0;
   const isLowStock = product.stockQuantity > 0 && product.stockQuantity <= 5;
 
-  const wishlistKey = user ? `pc_wishlist_${user.email.toLowerCase()}` : "pc_wishlist_guest";
   const shareUrl = `${window.location.origin}?product=${product.id}`;
   const shareText = `Plain Culture Drop: ${product.name} - ₦${product.price.toLocaleString()}. Limited pieces available. Shop here: ${shareUrl}`;
-
-  useEffect(() => {
-    const savedIds = JSON.parse(localStorage.getItem(wishlistKey) || "[]");
-    setIsInWishlist(savedIds.includes(product.id));
-  }, [product.id, wishlistKey]);
-
-  const toggleWishlist = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const savedIds = JSON.parse(localStorage.getItem(wishlistKey) || "[]");
-    let updatedIds;
-    if (savedIds.includes(product.id)) {
-      updatedIds = savedIds.filter((id: string) => id !== product.id);
-      setIsInWishlist(false);
-      onAddToast?.("Removed from wishlist", "info");
-    } else {
-      updatedIds = [...savedIds, product.id];
-      setIsInWishlist(true);
-      onAddToast?.("Added to wishlist!", "success");
-    }
-    localStorage.setItem(wishlistKey, JSON.stringify(updatedIds));
-  };
 
   const handleCopyLink = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -87,12 +61,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPreview, on
         )}
 
         {/* Status Overlay Badges */}
-        {!isDropLive ? (
-          <div className="absolute top-4 left-4 bg-zinc-700 text-white font-black text-[10px] tracking-widest uppercase px-3 py-1.5 shadow-md flex items-center gap-1.5 animate-pulse">
-            <Clock className="w-3 h-3" />
-            <span>UPCOMING DROP</span>
-          </div>
-        ) : isSoldOut ? (
+        {isSoldOut ? (
           <div className="absolute top-4 left-4 bg-red-600 text-white font-black text-[10px] tracking-widest uppercase px-3 py-1.5 shadow-md">
             SOLD OUT
           </div>
@@ -107,14 +76,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPreview, on
         )}
 
         {/* View Details Hover Overlay */}
-        {isDropLive && (
-          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-            <button onClick={() => onPreview(product)} className="flex items-center gap-2 px-4 py-2.5 bg-[#E8FF6B] text-black font-extrabold text-xs uppercase tracking-wider rounded-sm transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 cursor-pointer">
-              <Eye className="w-3.5 h-3.5" />
-              <span>VIEW DROP PIECE</span>
-            </button>
-          </div>
-        )}
+        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+          <button onClick={() => onPreview(product)} className="flex items-center gap-2 px-4 py-2.5 bg-[#E8FF6B] text-black font-extrabold text-xs uppercase tracking-wider rounded-sm transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 cursor-pointer">
+            <Eye className="w-3.5 h-3.5" />
+            <span>VIEW DROP PIECE</span>
+          </button>
+        </div>
       </div>
 
       {/* Info details */}
@@ -132,72 +99,59 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPreview, on
           <div className="flex items-start justify-between gap-3 mb-1">
             <h3 
               onClick={() => onPreview(product)}
-              className="text-base font-bold text-zinc-900 dark:text-zinc-100 uppercase tracking-wide hover:text-[#E8FF6B] dark:hover:text-[#E8FF6B] cursor-pointer transition-colors leading-tight flex-1"
+              className="text-base font-bold text-zinc-900 dark:text-zinc-100 uppercase tracking-wide hover:text-[#E8FF6B] dark:hover:text-[#E8FF6B] cursor-pointer transition-colors leading-tight"
             >
               {product.name}
             </h3>
 
-            {/* Actions: Wishlist + Share */}
-            <div className="flex items-center gap-1.5 shrink-0">
+            {/* Compact public share icon beside each product */}
+            <div className="relative shrink-0">
               <button
-                onClick={toggleWishlist}
-                className={`p-2 rounded-full border transition-all cursor-pointer ${
-                  isInWishlist 
-                    ? "bg-[#E8FF6B]/10 border-[#E8FF6B] text-[#E8FF6B]" 
-                    : "bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:border-red-400 hover:text-red-400"
-                }`}
-                title={isInWishlist ? "Remove from Wishlist" : "Save for Later"}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShareOpen((prev) => !prev);
+                }}
+                className="p-2 rounded-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:bg-[#E8FF6B] hover:text-black hover:border-[#E8FF6B] transition-all cursor-pointer"
+                title="Share product"
+                aria-label="Share product"
               >
-                <Heart className={`w-4 h-4 ${isInWishlist ? "fill-[#E8FF6B]" : ""}`} />
+                {copied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
               </button>
 
-              <div className="relative">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShareOpen((prev) => !prev);
-                  }}
-                  className="p-2 rounded-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:bg-[#E8FF6B] hover:text-black hover:border-[#E8FF6B] transition-all cursor-pointer"
-                  title="Share product"
+              {shareOpen && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute right-0 top-full mt-2 w-52 bg-black border border-zinc-800 rounded-sm shadow-2xl overflow-hidden z-20"
                 >
-                  {copied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
-                </button>
-
-                {shareOpen && (
-                  <div
-                    onClick={(e) => e.stopPropagation()}
-                    className="absolute right-0 top-full mt-2 w-52 bg-black border border-zinc-800 rounded-sm shadow-2xl overflow-hidden z-50"
-                  >
-                    <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-[#E8FF6B]">Share Drop</span>
-                      <button onClick={() => setShareOpen(false)} className="text-zinc-500 hover:text-white cursor-pointer">
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                    <button
-                      onClick={handleCopyLink}
-                      className="w-full px-3 py-2.5 flex items-center gap-2 text-xs text-zinc-300 hover:bg-zinc-900 hover:text-[#E8FF6B] transition-colors cursor-pointer text-left"
-                    >
-                      <Copy className="w-4 h-4" />
-                      <span>Copy link</span>
-                    </button>
-                    <button
-                      onClick={handleWhatsAppShare}
-                      className="w-full px-3 py-2.5 flex items-center gap-2 text-xs text-zinc-300 hover:bg-zinc-900 hover:text-[#E8FF6B] transition-colors cursor-pointer text-left"
-                    >
-                      <MessageCircle className="w-4 h-4" />
-                      <span>Share to WhatsApp</span>
-                    </button>
-                    <button
-                      onClick={handleInstagramGuide}
-                      className="w-full px-3 py-2.5 flex items-center gap-2 text-xs text-zinc-300 hover:bg-zinc-900 hover:text-[#E8FF6B] transition-colors cursor-pointer text-left"
-                    >
-                      <Camera className="w-4 h-4" />
-                      <span>Instagram Story guide</span>
+                  <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[#E8FF6B]">Share Drop</span>
+                    <button onClick={() => setShareOpen(false)} className="text-zinc-500 hover:text-white cursor-pointer">
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                )}
-              </div>
+                  <button
+                    onClick={handleCopyLink}
+                    className="w-full px-3 py-2.5 flex items-center gap-2 text-xs text-zinc-300 hover:bg-zinc-900 hover:text-[#E8FF6B] transition-colors cursor-pointer text-left"
+                  >
+                    <Copy className="w-4 h-4" />
+                    <span>Copy link</span>
+                  </button>
+                  <button
+                    onClick={handleWhatsAppShare}
+                    className="w-full px-3 py-2.5 flex items-center gap-2 text-xs text-zinc-300 hover:bg-zinc-900 hover:text-[#E8FF6B] transition-colors cursor-pointer text-left"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>Share to WhatsApp</span>
+                  </button>
+                  <button
+                    onClick={handleInstagramGuide}
+                    className="w-full px-3 py-2.5 flex items-center gap-2 text-xs text-zinc-300 hover:bg-zinc-900 hover:text-[#E8FF6B] transition-colors cursor-pointer text-left"
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span>Instagram Story guide</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -234,14 +188,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPreview, on
             )}
           </div>
 
-          {!isDropLive ? (
-            <button 
-              disabled
-              className="px-4 py-2 bg-zinc-100 dark:bg-zinc-900 text-zinc-400 font-extrabold text-xs uppercase tracking-widest cursor-wait"
-            >
-              LOCKED
-            </button>
-          ) : isSoldOut ? (
+          {isSoldOut ? (
             <button 
               disabled
               className="px-3.5 py-2 bg-zinc-200 dark:bg-zinc-900 text-zinc-400 dark:text-zinc-600 font-extrabold text-xs uppercase tracking-widest cursor-not-allowed"

@@ -321,6 +321,10 @@ const DEFAULT_SETTINGS = {
     accountNumber: "0123456789",
     accountName: "Plain Culture Clothing Ltd"
   },
+  paymentMethods: {
+    paystack: false,
+    bankTransfer: true
+  },
   presetAssets: [
     { label: "Onyx", value: "/images/tee_onyx.jpg" },
     { label: "Sand", value: "/images/tee_sand.jpg" },
@@ -334,8 +338,6 @@ const DEFAULT_SETTINGS = {
     embroidery: { chestLogo: 500, fullFront: 800, backName: 500 },
     dtf: { chestLogo: 300, fullFront: 500, backName: 300 }
   },
-  dropReleaseDate: new Date(Date.now() + 1000 * 60 * 60 * 48).toISOString(),
-  dropReleaseEnabled: false,
   storeLat: 7.3775, // Default store location (Ibadan center)
   storeLng: 3.9470,
   deliveryZones: [

@@ -239,8 +239,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
     tiktokHandle: storeSettings.tiktokHandle,
     facebookHandle: storeSettings.facebookHandle || "",
     brandingConfig: storeSettings.brandingConfig || { enabled: true, embroidery: { chestLogo: 500, fullFront: 800, backName: 500 }, dtf: { chestLogo: 300, fullFront: 500, backName: 300 } },
-    dropReleaseDate: storeSettings.dropReleaseDate || new Date().toISOString().slice(0, 16),
-    dropReleaseEnabled: storeSettings.dropReleaseEnabled || false,
+    paymentMethods: storeSettings.paymentMethods || { paystack: false, bankTransfer: true },
     paymentBankName: storeSettings.payment.bankName,
     paymentAccountNumber: storeSettings.payment.accountNumber,
     paymentAccountName: storeSettings.payment.accountName
@@ -288,8 +287,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
       tiktokHandle: storeSettings.tiktokHandle,
       facebookHandle: storeSettings.facebookHandle || "",
       brandingConfig: storeSettings.brandingConfig || { enabled: true, embroidery: { chestLogo: 500, fullFront: 800, backName: 500 }, dtf: { chestLogo: 300, fullFront: 500, backName: 300 } },
-      dropReleaseDate: storeSettings.dropReleaseDate || new Date().toISOString().slice(0, 16),
-      dropReleaseEnabled: storeSettings.dropReleaseEnabled || false,
+      paymentMethods: storeSettings.paymentMethods || { paystack: false, bankTransfer: true },
       paymentBankName: storeSettings.payment.bankName,
       paymentAccountNumber: storeSettings.payment.accountNumber,
       paymentAccountName: storeSettings.payment.accountName
@@ -899,8 +897,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
       tiktokHandle: settingsForm.tiktokHandle,
       facebookHandle: settingsForm.facebookHandle,
       brandingConfig: settingsForm.brandingConfig,
-      dropReleaseDate: settingsForm.dropReleaseDate,
-      dropReleaseEnabled: settingsForm.dropReleaseEnabled,
+      paymentMethods: settingsForm.paymentMethods,
       payment: {
         bankName: settingsForm.paymentBankName,
         accountNumber: settingsForm.paymentAccountNumber,
@@ -2255,53 +2252,66 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
               </div>
             </div>
 
-            {/* SECTION C: DROP COUNTDOWN & RELEASE SCHEDULER */}
+            {/* SECTION C: DROP COUNTDOWN TIMING */}
             <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-900 rounded-sm p-6">
-              <h2 className="text-base font-black uppercase tracking-wider text-black dark:text-white mb-6 flex items-center gap-2">
-                <span className="w-2 h-2 bg-[#E8FF6B] rounded-full" />
-                DROP SCHEDULING & COUNTDOWN
-              </h2>
+              <div className="flex items-start justify-between mb-1">
+                <h2 className="text-base font-black uppercase tracking-wider text-black dark:text-white flex items-center gap-2">
+                  <span className="w-2 h-2 bg-[#E8FF6B] rounded-full" />
+                  DROP COUNTDOWN TIMER
+                </h2>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settingsForm.countdownEnabled}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, countdownEnabled: e.target.checked })}
+                    className="w-4 h-4 accent-[#E8FF6B]"
+                  />
+                  <span className="text-xs font-bold uppercase text-zinc-700 dark:text-zinc-300">
+                    {settingsForm.countdownEnabled ? "Visible" : "Hidden"}
+                  </span>
+                </label>
+              </div>
+              <p className="text-xs text-zinc-500 mb-5">Toggle countdown visibility and set when the current drop ends. The hero countdown updates in real-time.</p>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* 1. DROP CLOSING TIMER */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-[#E8FF6B]">1. Drop Closing (Active Drop)</label>
-                    <input
-                      type="checkbox"
-                      checked={settingsForm.countdownEnabled}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, countdownEnabled: e.target.checked })}
-                      className="w-4 h-4 accent-[#E8FF6B]"
-                    />
-                  </div>
-                  <p className="text-xs text-zinc-500">Show a countdown for when the current drop ends.</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-wider text-zinc-500 mb-1.5">Drop End Date & Time</label>
                   <input
                     type="datetime-local"
                     value={settingsForm.dropEndDate}
                     onChange={(e) => setSettingsForm({ ...settingsForm, dropEndDate: e.target.value })}
-                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-sm text-black dark:text-white"
+                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-sm focus:outline-none focus:border-[#E8FF6B] text-black dark:text-white"
                   />
                 </div>
 
-                {/* 2. DROP RELEASE SCHEDULER */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-[#E8FF6B]">2. Drop Release (Upcoming Drop)</label>
-                    <input
-                      type="checkbox"
-                      checked={settingsForm.dropReleaseEnabled}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, dropReleaseEnabled: e.target.checked })}
-                      className="w-4 h-4 accent-[#E8FF6B]"
-                    />
-                  </div>
-                  <p className="text-xs text-zinc-500">Show a countdown for the next drop. Products unlock automatically at this time.</p>
-                  <input
-                    type="datetime-local"
-                    value={settingsForm.dropReleaseDate}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, dropReleaseDate: e.target.value })}
-                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 text-sm text-black dark:text-white"
-                  />
+                <div className="bg-zinc-100 dark:bg-zinc-900 p-3 rounded-sm border border-zinc-200 dark:border-zinc-800">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Current Setting</span>
+                  <p className="text-xs font-bold text-black dark:text-white mt-1">
+                    {settingsForm.dropEndDate ? new Date(settingsForm.dropEndDate).toLocaleString() : "Not set"}
+                  </p>
                 </div>
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span className="text-[10px] uppercase font-bold text-zinc-500 mr-2 self-center">Quick Set:</span>
+                {[
+                  { label: "+12 Hours", hours: 12 },
+                  { label: "+1 Day", hours: 24 },
+                  { label: "+3 Days", hours: 72 },
+                  { label: "+1 Week", hours: 168 }
+                ].map(opt => (
+                  <button
+                    key={opt.label}
+                    type="button"
+                    onClick={() => {
+                      const future = new Date(Date.now() + opt.hours * 3600000);
+                      setSettingsForm({ ...settingsForm, dropEndDate: future.toISOString().slice(0, 16) });
+                    }}
+                    className="px-3 py-1.5 bg-zinc-100 dark:bg-zinc-900 hover:bg-[#E8FF6B] hover:text-black text-xs font-bold uppercase tracking-wider rounded-sm cursor-pointer transition-colors border border-zinc-200 dark:border-zinc-800"
+                  >
+                    {opt.label}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -2311,7 +2321,47 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onAddToast, onNa
                 <span className="w-2 h-2 bg-[#E8FF6B] rounded-full" />
                 PAYMENT METHOD (BANK ACCOUNT)
               </h2>
-              <p className="text-xs text-zinc-500 mb-5">Account info shown to customers at checkout. Updated values appear instantly across all sessions.</p>
+              <p className="text-xs text-zinc-500 mb-5">Activate payment channels customers can use at checkout. Bank details are shown only when bank transfer is enabled.</p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+                <label className="flex items-center justify-between gap-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-sm cursor-pointer">
+                  <div>
+                    <span className="block text-sm font-black text-black dark:text-white uppercase tracking-wider">Paystack Online Payment</span>
+                    <span className="text-[10px] text-zinc-500">Cards, bank, transfer and USSD via Paystack.</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={settingsForm.paymentMethods.paystack}
+                    onChange={(e) => setSettingsForm({
+                      ...settingsForm,
+                      paymentMethods: { ...settingsForm.paymentMethods, paystack: e.target.checked }
+                    })}
+                    className="w-5 h-5 accent-[#E8FF6B]"
+                  />
+                </label>
+
+                <label className="flex items-center justify-between gap-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-sm cursor-pointer">
+                  <div>
+                    <span className="block text-sm font-black text-black dark:text-white uppercase tracking-wider">Bank Transfer / WhatsApp</span>
+                    <span className="text-[10px] text-zinc-500">Manual transfer then WhatsApp confirmation.</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={settingsForm.paymentMethods.bankTransfer}
+                    onChange={(e) => setSettingsForm({
+                      ...settingsForm,
+                      paymentMethods: { ...settingsForm.paymentMethods, bankTransfer: e.target.checked }
+                    })}
+                    className="w-5 h-5 accent-[#E8FF6B]"
+                  />
+                </label>
+              </div>
+
+              {!settingsForm.paymentMethods.paystack && !settingsForm.paymentMethods.bankTransfer && (
+                <div className="mb-5 bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold p-3 rounded-sm">
+                  At least one payment method should be active before saving.
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>

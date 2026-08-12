@@ -150,6 +150,7 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
   const [isPayingOnline, setIsPayingOnline] = useState(false);
 
   const deliveryZones = settings.deliveryZones || [];
+  const paymentMethods = settings.paymentMethods || { paystack: false, bankTransfer: true };
   const brandingConfig = settings.brandingConfig || { enabled: true, embroidery: { chestLogo: 500, fullFront: 800, backName: 500 }, dtf: { chestLogo: 300, fullFront: 500, backName: 300 } };
 
   // Compute branding total based on type + selected areas
@@ -849,25 +850,30 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
               <div className="space-y-5">
                 <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 pb-3 border-b border-zinc-200 dark:border-zinc-900">
                   <CreditCard className="w-4 h-4 text-[#E8FF6B]" />
-                  <span>Pay securely online, or use bank transfer and confirm via WhatsApp.</span>
+                  <span>{paymentMethods.paystack && paymentMethods.bankTransfer ? "Pay securely online, or use bank transfer and confirm via WhatsApp." : paymentMethods.paystack ? "Pay securely online with Paystack." : "Make a bank transfer and confirm via WhatsApp."}</span>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handlePaystackPayment}
-                  disabled={isPayingOnline}
-                  className={`w-full py-4 bg-[#E8FF6B] hover:bg-[#d0e54d] text-black font-extrabold uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-2 cursor-pointer rounded-sm shadow-md ${isPayingOnline ? "opacity-60 cursor-wait" : ""}`}
-                >
-                  <CreditCard className="w-4 h-4" />
-                  <span>{isPayingOnline ? "Opening Paystack..." : `Pay Online ₦${getGrandTotal().toLocaleString()}`}</span>
-                </button>
+                {paymentMethods.paystack && (
+                  <button
+                    type="button"
+                    onClick={handlePaystackPayment}
+                    disabled={isPayingOnline}
+                    className={`w-full py-4 bg-[#E8FF6B] hover:bg-[#d0e54d] text-black font-extrabold uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-2 cursor-pointer rounded-sm shadow-md ${isPayingOnline ? "opacity-60 cursor-wait" : ""}`}
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    <span>{isPayingOnline ? "Opening Paystack..." : `Pay Online ₦${getGrandTotal().toLocaleString()}`}</span>
+                  </button>
+                )}
 
-                <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-bold text-zinc-500">
-                  <span className="h-px flex-1 bg-zinc-800" />
-                  <span>or bank transfer</span>
-                  <span className="h-px flex-1 bg-zinc-800" />
-                </div>
+                {paymentMethods.paystack && paymentMethods.bankTransfer && (
+                  <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-bold text-zinc-500">
+                    <span className="h-px flex-1 bg-zinc-800" />
+                    <span>or bank transfer</span>
+                    <span className="h-px flex-1 bg-zinc-800" />
+                  </div>
+                )}
 
+                {paymentMethods.bankTransfer && (
                 <div className="bg-gradient-to-br from-zinc-900 to-black text-white p-5 rounded-sm border border-zinc-800 shadow-xl">
                   <div className="flex items-center justify-between mb-4 pb-3 border-b border-zinc-800">
                     <span className="text-[10px] font-black tracking-[0.25em] text-[#E8FF6B] uppercase">
@@ -941,7 +947,9 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
                     </div>
                   </div>
                 </div>
+                )}
 
+                {paymentMethods.bankTransfer && (
                 <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-sm">
                   <p className="text-[11px] text-amber-600 dark:text-amber-400 leading-relaxed">
                     <strong className="block mb-1">⚠️ IMPORTANT:</strong>
@@ -950,6 +958,13 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
                     3. Your order will be dispatched once payment is confirmed.
                   </p>
                 </div>
+                )}
+
+                {!paymentMethods.paystack && !paymentMethods.bankTransfer && (
+                  <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-sm text-red-500 text-xs font-bold">
+                    No payment method is currently active. Please contact us via WhatsApp to place your order manually.
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1017,22 +1032,28 @@ export const CartAndCheckoutDrawer: React.FC<CartAndCheckoutDrawerProps> = ({
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <button
-                    onClick={handleFinalSubmit}
-                    disabled={isCheckingOut}
-                    className={`w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-2 cursor-pointer ${
-                      isCheckingOut ? "opacity-50 cursor-wait" : ""
-                    }`}
-                  >
-                    {isCheckingOut ? (
-                      <span>GENERATING ORDER ID...</span>
-                    ) : (
-                      <>
-                        <span>I'VE PAID • CONFIRM VIA WHATSAPP</span>
-                        <ArrowRight className="w-4.5 h-4.5" />
-                      </>
-                    )}
-                  </button>
+                  {paymentMethods.bankTransfer ? (
+                    <button
+                      onClick={handleFinalSubmit}
+                      disabled={isCheckingOut}
+                      className={`w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-2 cursor-pointer ${
+                        isCheckingOut ? "opacity-50 cursor-wait" : ""
+                      }`}
+                    >
+                      {isCheckingOut ? (
+                        <span>GENERATING ORDER ID...</span>
+                      ) : (
+                        <>
+                          <span>I'VE PAID • CONFIRM VIA WHATSAPP</span>
+                          <ArrowRight className="w-4.5 h-4.5" />
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <div className="w-full py-3 px-4 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-500 text-xs font-bold uppercase tracking-wider text-center rounded-sm">
+                      Bank transfer is currently disabled. Please use Paystack online payment.
+                    </div>
+                  )}
                   <button
                     type="button"
                     onClick={handlePrevStep}
